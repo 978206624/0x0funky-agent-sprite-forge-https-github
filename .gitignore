@@ -33,3 +33,9 @@ outputs/
 
 # 内嵌 git 仓库（参考用，不入库）
 work/open-design-reference/
+
+# Claude per-task review 状态文件
+.claude/.needs-review
+
+# TS 增量编译缓存
+*.tsbuildinfo

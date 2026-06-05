@@ -86,7 +86,11 @@ function ChatTab() {
   )
 }
 
-export function RightPanel() {
+interface RightPanelProps {
+  ready: boolean
+}
+
+export function RightPanel({ ready }: RightPanelProps) {
   const [tab, setTab] = useState<RightTab>('params')
 
   return (
@@ -117,9 +121,9 @@ export function RightPanel() {
       {tab === 'params' ? <ParamsTab /> : <ChatTab />}
 
       <div className="shrink-0 border-t border-edge p-4">
-        <Button fullWidth>
+        <Button fullWidth disabled={!ready}>
           <Zap className="h-4 w-4" />
-          生成
+          {ready ? '生成' : '生成 (需先配置 Codex)'}
         </Button>
       </div>
     </aside>

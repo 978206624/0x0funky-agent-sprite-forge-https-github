@@ -1,5 +1,6 @@
 import { app, BrowserWindow, shell } from 'electron'
 import { join } from 'path'
+import { registerCodexIpc } from './ipc/codex'
 
 // 仅放行本地 dev server（http/https + localhost）。返回解析后的 URL，非法则 null。
 function parseLocalDevUrl(raw: string | undefined): URL | null {
@@ -64,6 +65,7 @@ function createWindow(): void {
 }
 
 app.whenReady().then(() => {
+  registerCodexIpc()
   createWindow()
 
   app.on('activate', () => {

@@ -1,5 +1,7 @@
 import { ChevronDown, Download } from 'lucide-react'
 import { useState } from 'react'
+import type { CodexHealth } from '@shared/types'
+import { CodexNotReady } from '../states/codex-not-ready'
 import { SegmentedControl } from '../ui/segmented-control'
 
 type PreviewView = 'sheet' | 'frame' | 'gif'
@@ -18,8 +20,23 @@ const LOGS: [string, string][] = [
   ['12:04:31', 'done · 6 frames · animation.gif written']
 ]
 
-export function CenterPanel() {
+interface CenterPanelProps {
+  ready: boolean
+  health: CodexHealth | null
+  loading: boolean
+  onRetry: () => void
+}
+
+export function CenterPanel({ ready, health, loading, onRetry }: CenterPanelProps) {
   const [view, setView] = useState<PreviewView>('sheet')
+
+  if (!loading && !ready) {
+    return (
+      <main className="flex flex-1 flex-col bg-base">
+        <CodexNotReady health={health} onRetry={onRetry} />
+      </main>
+    )
+  }
 
   return (
     <main className="flex flex-1 flex-col bg-base">
