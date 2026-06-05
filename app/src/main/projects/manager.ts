@@ -52,8 +52,8 @@ export function getCurrentProject(): Project | null {
   return proj
 }
 
-/** 弹目录选择对话框，返回选中的绝对路径；用户取消返回 null。 */
-export async function pickDirectory(): Promise<string | null> {
+/** 弹目录选择对话框，返回选中的绝对路径；用户取消返回 null。仅本模块内部使用（经 pickAndCreateProject 暴露）。 */
+async function pickDirectory(): Promise<string | null> {
   const res = await dialog.showOpenDialog({
     title: '选择项目目录',
     properties: ['openDirectory', 'createDirectory']

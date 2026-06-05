@@ -15,12 +15,21 @@ function relativeTime(iso: string | null): string {
   return `${Math.floor(diff / day)} 天前`
 }
 
-function RecentCard({ project, onOpen }: { project: Project; onOpen: () => void }) {
+function RecentCard({
+  project,
+  onOpen,
+  disabled
+}: {
+  project: Project
+  onOpen: () => void
+  disabled: boolean
+}) {
   return (
     <button
       type="button"
       onClick={onOpen}
-      className="flex w-full items-center gap-3 rounded-md border border-edge bg-panel p-3 text-left transition-colors hover:border-edge-strong hover:bg-hover"
+      disabled={disabled}
+      className="flex w-full items-center gap-3 rounded-md border border-edge bg-panel p-3 text-left transition-colors hover:border-edge-strong hover:bg-hover disabled:pointer-events-none disabled:opacity-50"
     >
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm bg-elevated">
         <Folder className="h-5 w-5 text-accent" />
@@ -38,7 +47,7 @@ function RecentCard({ project, onOpen }: { project: Project; onOpen: () => void 
 
 /** S10 项目页：启动入口。新建/打开项目 + 最近项目网格。 */
 export function ProjectPicker() {
-  const { recent, loading, error, pickAndOpen, openRecent } = useProjects()
+  const { recent, loading, error, busy, pickAndOpen, openRecent } = useProjects()
 
   return (
     <div className="flex h-screen w-screen items-center justify-center bg-base p-6">
@@ -58,7 +67,8 @@ export function ProjectPicker() {
           <button
             type="button"
             onClick={pickAndOpen}
-            className="inline-flex items-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-hover"
+            disabled={busy}
+            className="inline-flex items-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-hover disabled:pointer-events-none disabled:opacity-50"
           >
             <FolderPlus className="h-4 w-4" />
             新建项目
@@ -66,7 +76,8 @@ export function ProjectPicker() {
           <button
             type="button"
             onClick={pickAndOpen}
-            className="inline-flex items-center gap-2 rounded-md border border-edge bg-elevated px-4 py-2 text-sm font-medium text-fg-soft transition-colors hover:bg-hover hover:text-fg"
+            disabled={busy}
+            className="inline-flex items-center gap-2 rounded-md border border-edge bg-elevated px-4 py-2 text-sm font-medium text-fg-soft transition-colors hover:bg-hover hover:text-fg disabled:pointer-events-none disabled:opacity-50"
           >
             <FolderOpen className="h-4 w-4" />
             打开文件夹
@@ -86,7 +97,12 @@ export function ProjectPicker() {
             </p>
           ) : (
             recent.map((p) => (
-              <RecentCard key={p.id} project={p} onOpen={() => void openRecent(p.id)} />
+              <RecentCard
+                key={p.id}
+                project={p}
+                onOpen={() => void openRecent(p.id)}
+                disabled={busy}
+              />
             ))
           )}
         </div>

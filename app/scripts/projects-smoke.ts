@@ -10,7 +10,8 @@ import {
   openProjectAt,
   openExistingProject,
   setCurrentProject,
-  getCurrentProjectId
+  getCurrentProjectId,
+  getCurrentProject
 } from '../src/main/projects/manager'
 
 let passed = 0
@@ -41,6 +42,12 @@ const p2 = openProjectAt(projDir, '改个名')
 assert(p2.id === p.id && p2.name === '改个名', '同目录 upsert 去重 + 更新名称')
 assert(listProjects(getDb()).length === 1, '去重后仍只有 1 个 project')
 
+// canonical 去重：同目录的路径变体（正斜杠 + 尾分隔符）经 realpathSync.native 收敛同一 row
+const variant = projDir.replace(/\\/g, '/') + '/'
+const p3 = openProjectAt(variant)
+assert(p3.id === p.id, 'canonical 化后路径变体走 upsert 不新增')
+assert(listProjects(getDb()).length === 1, 'canonical 去重后仍只有 1 个 project')
+
 // 打开最近项目（按 id，校验目录仍在）
 const reopened = openExistingProject(p.id)
 assert(reopened.id === p.id, 'openExistingProject 按 id 打开')
@@ -48,10 +55,21 @@ assert(reopened.lastOpenedAt !== null, '打开后刷新 last_opened_at')
 
 // 当前项目主进程状态
 assert(getCurrentProjectId() === null, '初始当前项目为空')
+assert(getCurrentProject() === null, '初始 getCurrentProject 为空')
 setCurrentProject(p.id)
 assert(getCurrentProjectId() === p.id, 'setCurrentProject 设置生效')
+assert(getCurrentProject()?.id === p.id, 'getCurrentProject 返回当前项目记录')
 setCurrentProject(null)
 assert(getCurrentProjectId() === null, 'setCurrentProject(null) 清空')
+
+// setCurrent 校验：不存在的 id 被拒
+let setRejected = false
+try {
+  setCurrentProject(999999)
+} catch {
+  setRejected = true
+}
+assert(setRejected, 'setCurrentProject 拒绝不存在的项目 id')
 
 // 不存在的目录 → 抛错
 let rejected = false
@@ -62,8 +80,14 @@ try {
 }
 assert(rejected, '打开不存在目录被拒')
 
-// 打开已删除目录的最近项目 → 抛错
+// 设当前项目（目录此刻仍在）→ 随后删除目录 → getCurrentProject stale 自愈为 null
+setCurrentProject(p.id)
+assert(getCurrentProjectId() === p.id, '删除前当前项目已设置')
 rmSync(projDir, { recursive: true, force: true })
+assert(getCurrentProject() === null, '目录失效后 getCurrentProject 自愈返回 null')
+assert(getCurrentProjectId() === null, '自愈同时清空 currentProjectId')
+
+// 打开已删除目录的最近项目 → 抛错
 let openRejected = false
 try {
   openExistingProject(p.id)
