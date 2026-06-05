@@ -80,8 +80,14 @@ export function buildSpritePrompt(input: SpritePromptInput): string {
     '',
     'Output (write the full processed bundle into the current project working directory):',
     `- put all output files under the relative path: ${outDir}/`,
-    `- include: raw-sheet.png, raw-sheet-clean.png, sheet-transparent.png, ${slug}-1.png .. ${slug}-${frames}.png, animation.gif, prompt-used.txt, pipeline-meta.json`,
+    `- include: raw-sheet.png, raw-sheet-clean.png, sheet-transparent.png, ${slug}-1.png .. ${slug}-${frames}.png, animation.gif, prompt-used.txt, pipeline-meta.json, phaser-example.js, README.md`,
     '- run the local postprocess script for chroma-key cleanup, frame extraction, alignment, QC, transparent export and GIF; do not hand-place frames',
-    `- the sheet must yield exactly ${frames} frames matching the ${rows}x${cols} grid`
+    `- the sheet must yield exactly ${frames} frames matching the ${rows}x${cols} grid`,
+    '',
+    'Scope (do not exceed):',
+    `- write all generation outputs only inside ${outDir}/; do not create or modify files at the project root`,
+    `- inside ${outDir}/, bundle support files such as README.md and phaser-example.js are expected and allowed`,
+    '- do NOT create or modify Product-Spec files, changelogs, design docs, git metadata, or unrelated project files',
+    '- do not require the working directory to be a git repository'
   ].join('\n')
 }
