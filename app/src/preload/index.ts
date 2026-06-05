@@ -2,7 +2,6 @@ import { contextBridge, ipcRenderer } from 'electron'
 import type {
   CodexHealth,
   Project,
-  ProjectInput,
   GenerationRecord,
   GenerationInput,
   GenerationUpdate,
@@ -16,21 +15,17 @@ const api = {
   },
   projects: {
     list: (): Promise<Project[]> => ipcRenderer.invoke('projects:list'),
-    pickDir: (): Promise<string | null> => ipcRenderer.invoke('projects:pickDir'),
-    create: (absPath: string, name?: string): Promise<Project> =>
-      ipcRenderer.invoke('projects:create', absPath, name),
+    pickAndCreate: (name?: string): Promise<Project | null> =>
+      ipcRenderer.invoke('projects:pickAndCreate', name),
     open: (id: number): Promise<Project> => ipcRenderer.invoke('projects:open', id),
-    setCurrent: (id: number | null): Promise<void> =>
-      ipcRenderer.invoke('projects:setCurrent', id)
+    setCurrent: (id: number | null): Promise<Project | null> =>
+      ipcRenderer.invoke('projects:setCurrent', id),
+    getCurrent: (): Promise<Project | null> => ipcRenderer.invoke('projects:getCurrent')
   },
   db: {
     projects: {
       list: (): Promise<Project[]> => ipcRenderer.invoke('db:projects:list'),
-      get: (id: number): Promise<Project | null> => ipcRenderer.invoke('db:projects:get', id),
-      create: (input: ProjectInput): Promise<Project> =>
-        ipcRenderer.invoke('db:projects:create', input),
-      touch: (id: number): Promise<void> => ipcRenderer.invoke('db:projects:touch', id),
-      delete: (id: number): Promise<void> => ipcRenderer.invoke('db:projects:delete', id)
+      get: (id: number): Promise<Project | null> => ipcRenderer.invoke('db:projects:get', id)
     },
     generations: {
       listByProject: (projectId: number): Promise<GenerationRecord[]> =>

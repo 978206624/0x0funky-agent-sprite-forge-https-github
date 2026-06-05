@@ -47,9 +47,9 @@ export function useProjects(): UseProjects {
   const pickAndOpen = useCallback(async () => {
     setError(null)
     try {
-      const dir = await window.api.projects.pickDir()
-      if (!dir) return
-      await enter(await window.api.projects.create(dir))
+      const project = await window.api.projects.pickAndCreate()
+      if (!project) return // 用户取消选择
+      await enter(project)
     } catch {
       setError('创建项目失败：目录可能不可读写')
     }

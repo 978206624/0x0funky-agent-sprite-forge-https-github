@@ -3,18 +3,14 @@ import { getDb } from '../db'
 import * as projects from '../db/projects-repo'
 import * as generations from '../db/generations-repo'
 import * as settings from '../db/settings-repo'
-import type { ProjectInput, GenerationInput, GenerationUpdate } from '../../shared/types'
+import type { GenerationInput, GenerationUpdate } from '../../shared/types'
 
 /** 注册 db 相关 IPC handler。须在 app ready 且 initDatabase() 之后调用一次。 */
 export function registerDbIpc(): void {
-  // ---- projects ----
+  // ---- projects（只读查询；新建/打开/删除等写操作统一走 projects:* 经项目管理层，
+  //      以保证目录校验、canonical 化与 assets 初始化不被绕过） ----
   ipcMain.handle('db:projects:list', () => projects.listProjects(getDb()))
   ipcMain.handle('db:projects:get', (_e, id: number) => projects.getProject(getDb(), id))
-  ipcMain.handle('db:projects:create', (_e, input: ProjectInput) =>
-    projects.createProject(getDb(), input)
-  )
-  ipcMain.handle('db:projects:touch', (_e, id: number) => projects.touchProject(getDb(), id))
-  ipcMain.handle('db:projects:delete', (_e, id: number) => projects.deleteProject(getDb(), id))
 
   // ---- generations ----
   ipcMain.handle('db:generations:listByProject', (_e, projectId: number) =>

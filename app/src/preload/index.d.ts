@@ -1,7 +1,6 @@
 import type {
   CodexHealth,
   Project,
-  ProjectInput,
   GenerationRecord,
   GenerationInput,
   GenerationUpdate,
@@ -16,22 +15,21 @@ export interface ForgeApi {
   projects: {
     /** 最近项目列表（最近打开优先） */
     list: () => Promise<Project[]>
-    /** 弹目录选择对话框，取消返回 null */
-    pickDir: () => Promise<string | null>
-    /** 在目录新建/打开项目（校验 + 初始化 assets + upsert） */
-    create: (absPath: string, name?: string) => Promise<Project>
+    /** 选目录并新建/打开项目（主进程原子：校验 + canonical + 初始化 assets + upsert；取消返回 null） */
+    pickAndCreate: (name?: string) => Promise<Project | null>
     /** 打开最近项目（校验目录仍可访问） */
     open: (id: number) => Promise<Project>
-    /** 设置主进程当前项目（null=清空） */
-    setCurrent: (id: number | null) => Promise<void>
+    /** 设置主进程当前项目（null=清空），返回设置后的当前项目 */
+    setCurrent: (id: number | null) => Promise<Project | null>
+    /** 读取主进程当前项目（renderer 启动/刷新时同步状态；失效自愈清空返回 null） */
+    getCurrent: () => Promise<Project | null>
   }
   db: {
     projects: {
+      /** 只读：最近项目列表 */
       list: () => Promise<Project[]>
+      /** 只读：按 id 查项目 */
       get: (id: number) => Promise<Project | null>
-      create: (input: ProjectInput) => Promise<Project>
-      touch: (id: number) => Promise<void>
-      delete: (id: number) => Promise<void>
     }
     generations: {
       listByProject: (projectId: number) => Promise<GenerationRecord[]>
