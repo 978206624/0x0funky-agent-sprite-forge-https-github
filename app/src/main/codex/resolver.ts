@@ -38,7 +38,7 @@ export async function resolveCodexPath(): Promise<string | null> {
   return null
 }
 
-/** .cmd / .bat shim 需要经 shell 执行 */
+/** .cmd / .bat / .ps1 shim 需要经 shell 执行 */
 export function needsShell(binPath: string): boolean {
-  return /\.(cmd|bat)$/i.test(binPath)
+  return /\.(cmd|bat|ps1)$/i.test(binPath)
 }

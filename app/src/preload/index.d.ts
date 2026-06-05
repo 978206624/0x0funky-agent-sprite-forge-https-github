@@ -1,6 +1,8 @@
 import type {
   CodexHealth,
   Project,
+  CodexEvent,
+  GenParams,
   GenerationRecord,
   GenerationInput,
   GenerationUpdate,
@@ -23,6 +25,18 @@ export interface ForgeApi {
     setCurrent: (id: number | null) => Promise<Project | null>
     /** 读取主进程当前项目（renderer 启动/刷新时同步状态；失效自愈清空返回 null） */
     getCurrent: () => Promise<Project | null>
+  }
+  generation: {
+    /** 用当前项目 + 参数发起一次生成；返回记录 id 与 slug */
+    start: (params: GenParams) => Promise<{ generationId: number; slug: string }>
+    /** 取消进行中的生成 */
+    cancel: () => Promise<void>
+    /** 订阅 codex 事件流，返回退订函数 */
+    onEvent: (cb: (ev: CodexEvent) => void) => () => void
+    /** 订阅 stderr 诊断片段，返回退订函数 */
+    onStderr: (cb: (chunk: string) => void) => () => void
+    /** 订阅生成结束（最终记录），返回退订函数 */
+    onDone: (cb: (record: GenerationRecord) => void) => () => void
   }
   db: {
     projects: {

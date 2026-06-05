@@ -6,6 +6,7 @@ import { StatusBar } from './components/layout/status-bar'
 import { TopBar } from './components/layout/top-bar'
 import { ProjectPicker } from './components/project/project-picker'
 import { useCodexHealth } from './hooks/use-codex-health'
+import { useGenerationSubscription } from './hooks/use-generation'
 import { useProjectStore } from './store/project-store'
 
 export default function App() {
@@ -14,6 +15,9 @@ export default function App() {
   const hydrate = useProjectStore((s) => s.hydrate)
   const { health, loading, refresh } = useCodexHealth()
   const ready = !!health?.installed && !!health?.loggedIn
+
+  // 把主进程生成事件流接到 generation-store（顶层订阅一次）。
+  useGenerationSubscription()
 
   // 启动/刷新时从主进程同步当前项目，避免 renderer 状态与主进程脱节。
   useEffect(() => {

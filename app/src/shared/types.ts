@@ -49,21 +49,39 @@ export type GenerationStatus = (typeof GENERATION_STATUSES)[number]
 
 /**
  * 生成参数（存为 generations.params 的 JSON）。
- * 核心字段在 Phase 6 接通参数表单时逐步填充，这里定义前向兼容结构。
+ * Phase 6 接通参数表单：theme + 资产类型/动作/视角 + 网格/帧尺寸/对齐 + 高级后处理项。
+ * 全部 optional 以保前向兼容；缺省值由 prompt-builder / skill 自行推断。
  */
 export interface GenParams {
-  /** 动作，如 walk/run/idle */
+  /** 主题/视觉描述（用户提示词，对应 prompt 的创意部分） */
+  theme?: string
+  /** 资产类型，如 player/npc/creature/spell（对应 skill asset_type） */
+  assetType?: string
+  /** 动作，如 walk/run/idle/cast */
   action?: string
+  /** 视角，如 side/topdown/3-4 */
+  view?: string
   /** 精灵表网格列数 */
   gridCols?: number
   /** 精灵表网格行数 */
   gridRows?: number
-  /** 单帧宽（px） */
+  /** 单帧宽 / cell_size（px） */
   frameWidth?: number
-  /** 单帧高（px） */
+  /** 单帧高（px，省略则同宽） */
   frameHeight?: number
-  /** 对齐方式 */
+  /** 对齐方式：center/bottom/feet */
   alignment?: string
+  // ---- 高级后处理参数（对应 pipeline-meta.json，可复现）----
+  /** 主体在单元格内的缩放占比，如 0.88 */
+  fitScale?: number
+  /** 抠图后源裁剪外扩 padding（px） */
+  sourcePadding?: number
+  /** 触边判定容差（px） */
+  edgeTouchMargin?: number
+  /** GIF 帧时长（ms） */
+  duration?: number
+  /** 是否所有帧共享统一缩放 */
+  sharedScale?: boolean
   /** codex 模型 */
   model?: string
   /** 推理强度（effort） */
@@ -118,3 +136,88 @@ export interface GenerationUpdate {
 
 /** 全局设置：key-value 映射。 */
 export type AppSettings = Record<string, string>
+
+// ============================================================
+// codex exec --json 事件流（Phase 6：生成执行）
+// 真实格式由探针实测（见 .tk-meeting 探针 jsonl）：每行一个 JSON，顶层 `type` 判别，
+// item.* 事件再由 `item.type` 二级判别。已知变体显式建模；未知类型由解析器归一为
+// CodexUnknownEvent 兜底，保证新事件/新 item 类型不会让解析器崩溃（仍可原样进日志）。
+// ============================================================
+
+/** codex 输出项的执行状态。 */
+export type CodexItemStatus = 'in_progress' | 'completed' | 'failed'
+
+/** agent 文本消息项。 */
+export interface CodexAgentMessageItem {
+  id: string
+  type: 'agent_message'
+  text: string
+}
+
+/** 命令执行项（含聚合输出与退出码）。 */
+export interface CodexCommandExecutionItem {
+  id: string
+  type: 'command_execution'
+  command: string
+  aggregated_output: string
+  exit_code: number | null
+  status: CodexItemStatus
+}
+
+/** 单条文件变更。kind 如 add / update / delete。 */
+export interface CodexFileChange {
+  path: string
+  kind: string
+}
+
+/** 文件变更项。 */
+export interface CodexFileChangeItem {
+  id: string
+  type: 'file_change'
+  changes: CodexFileChange[]
+  status: CodexItemStatus
+}
+
+/** 推理项（codex 暴露 reasoning 摘要时）。 */
+export interface CodexReasoningItem {
+  id: string
+  type: 'reasoning'
+  text?: string
+}
+
+/**
+ * codex 输出项联合（按 item.type 判别已知变体）。
+ * 未知/未来 item 类型（如 image_gen）在格式化层自然落到 default 跳过；
+ * 不在此处放开放兜底，避免索引签名污染判别窄化。顶层未知事件由 CodexUnknownEvent 兜底。
+ */
+export type CodexItem =
+  | CodexAgentMessageItem
+  | CodexCommandExecutionItem
+  | CodexFileChangeItem
+  | CodexReasoningItem
+
+/** turn 完成时的 token 用量。 */
+export interface CodexUsage {
+  input_tokens: number
+  cached_input_tokens: number
+  output_tokens: number
+  reasoning_output_tokens: number
+}
+
+/** codex exec --json 顶层事件（按 type 判别）。CodexUnknownEvent 为兜底。 */
+export type CodexEvent =
+  | { type: 'thread.started'; thread_id: string }
+  | { type: 'turn.started' }
+  | { type: 'turn.completed'; usage: CodexUsage }
+  | { type: 'turn.failed'; error?: { message?: string } }
+  | { type: 'item.started'; item: CodexItem }
+  | { type: 'item.updated'; item: CodexItem }
+  | { type: 'item.completed'; item: CodexItem }
+  | { type: 'error'; message: string }
+  | CodexUnknownEvent
+
+/** 解析器对未识别顶层事件的归一形式：保留原始 JSON 供日志透传与诊断。 */
+export interface CodexUnknownEvent {
+  type: 'unknown'
+  raw: unknown
+}
