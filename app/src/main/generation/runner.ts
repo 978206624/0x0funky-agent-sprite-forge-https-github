@@ -83,7 +83,7 @@ function validateBundle(
   slug: string,
   expectedFrames: number
 ): { ok: boolean; thumbnail: string | null; reason: string | null } {
-  // 校验 prompt 明确要求的核心产物（与 buildSpritePrompt 的 include 清单对齐）。
+  // 仅 gate 核心可运行产物；include 清单里的 README.md / phaser-example.js 是辅助文件，缺失不判失败。
   const required = [
     'raw-sheet.png',
     'raw-sheet-clean.png',
