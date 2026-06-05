@@ -14,6 +14,15 @@ const api = {
   codex: {
     detect: (): Promise<CodexHealth> => ipcRenderer.invoke('codex:detect')
   },
+  projects: {
+    list: (): Promise<Project[]> => ipcRenderer.invoke('projects:list'),
+    pickDir: (): Promise<string | null> => ipcRenderer.invoke('projects:pickDir'),
+    create: (absPath: string, name?: string): Promise<Project> =>
+      ipcRenderer.invoke('projects:create', absPath, name),
+    open: (id: number): Promise<Project> => ipcRenderer.invoke('projects:open', id),
+    setCurrent: (id: number | null): Promise<void> =>
+      ipcRenderer.invoke('projects:setCurrent', id)
+  },
   db: {
     projects: {
       list: (): Promise<Project[]> => ipcRenderer.invoke('db:projects:list'),

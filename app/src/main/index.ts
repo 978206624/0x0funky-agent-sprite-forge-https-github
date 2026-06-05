@@ -2,6 +2,7 @@ import { app, BrowserWindow, shell } from 'electron'
 import { join } from 'path'
 import { registerCodexIpc } from './ipc/codex'
 import { registerDbIpc } from './ipc/db'
+import { registerProjectsIpc } from './ipc/projects'
 import { initDatabase, closeDatabase } from './db'
 
 // 仅放行本地 dev server（http/https + localhost）。返回解析后的 URL，非法则 null。
@@ -70,6 +71,7 @@ app.whenReady().then(() => {
   initDatabase()
   registerCodexIpc()
   registerDbIpc()
+  registerProjectsIpc()
   createWindow()
 
   app.on('activate', () => {

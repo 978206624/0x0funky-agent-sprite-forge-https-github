@@ -13,6 +13,18 @@ export interface ForgeApi {
     /** 检测本机 codex 安装与登录状态 */
     detect: () => Promise<CodexHealth>
   }
+  projects: {
+    /** 最近项目列表（最近打开优先） */
+    list: () => Promise<Project[]>
+    /** 弹目录选择对话框，取消返回 null */
+    pickDir: () => Promise<string | null>
+    /** 在目录新建/打开项目（校验 + 初始化 assets + upsert） */
+    create: (absPath: string, name?: string) => Promise<Project>
+    /** 打开最近项目（校验目录仍可访问） */
+    open: (id: number) => Promise<Project>
+    /** 设置主进程当前项目（null=清空） */
+    setCurrent: (id: number | null) => Promise<void>
+  }
   db: {
     projects: {
       list: () => Promise<Project[]>
