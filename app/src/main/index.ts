@@ -1,6 +1,8 @@
 import { app, BrowserWindow, shell } from 'electron'
 import { join } from 'path'
 import { registerCodexIpc } from './ipc/codex'
+import { registerDbIpc } from './ipc/db'
+import { initDatabase, closeDatabase } from './db'
 
 // 仅放行本地 dev server（http/https + localhost）。返回解析后的 URL，非法则 null。
 function parseLocalDevUrl(raw: string | undefined): URL | null {
@@ -65,13 +67,17 @@ function createWindow(): void {
 }
 
 app.whenReady().then(() => {
+  initDatabase()
   registerCodexIpc()
+  registerDbIpc()
   createWindow()
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
 })
+
+app.on('before-quit', () => closeDatabase())
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()
