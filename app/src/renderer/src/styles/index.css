@@ -1,0 +1,85 @@
+@import 'tailwindcss';
+
+/* ── Design tokens（对齐 Design-Brief.md / Pencil 设计稿）──
+   深色引擎编辑器风：中性深炭灰多级背景 + 紫色单点缀 + 状态色。
+   间距/圆角沿用 Tailwind 默认刻度（1=4px … 6=24px），不另设。 */
+@theme {
+  /* 背景多级灰阶（明度差建立层次，OLED 友好，避免纯黑） */
+  --color-base: #18181b;
+  --color-panel: #1f1f23;
+  --color-elevated: #27272b;
+  --color-hover: #2e2e33;
+
+  /* 描边 */
+  --color-edge: #34343a;
+  --color-edge-strong: #3f3f46;
+
+  /* 文字三级 */
+  --color-fg: #ececee;
+  --color-fg-soft: #a1a1aa;
+  --color-fg-dim: #6b6b73;
+
+  /* 紫色强调（呼应 AI 生成语义，克制点睛） */
+  --color-accent: #8b5cf6;
+  --color-accent-hover: #7c4def;
+  --color-accent-soft: #8b5cf626;
+
+  /* 状态色 */
+  --color-success: #4ade80;
+  --color-warning: #fbbf24;
+  --color-error: #f87171;
+
+  /* 棋格透明底 */
+  --color-checker-a: #2b2b30;
+  --color-checker-b: #37373d;
+
+  /* 字体：几何 UI + 等宽数字 */
+  --font-ui: 'Inter', system-ui, -apple-system, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Cascadia Code', ui-monospace, 'Consolas', monospace;
+
+  /* 圆角（引擎编辑器锐利感，小圆角） */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--color-base);
+  color: var(--color-fg);
+  font-family: var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  overflow: hidden;
+}
+
+/* 棋格透明底（精灵预览区，业界标准灰白棋格的深色版） */
+.checker-bg {
+  background-color: var(--color-checker-b);
+  background-image:
+    linear-gradient(45deg, var(--color-checker-a) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--color-checker-a) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--color-checker-a) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--color-checker-a) 75%);
+  background-size: 24px 24px;
+  background-position:
+    0 0,
+    0 12px,
+    12px -12px,
+    -12px 0;
+}
+
+/* 像素图清晰缩放（精灵图禁用模糊插值） */
+.pixelated {
+  image-rendering: pixelated;
+}

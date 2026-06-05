@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+
+# Electron / Vite build output
+app/out/
+app/dist/
+app/release/
+app/.vite/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# SQLite runtime db (user data)
+*.db
+*.db-shm
+*.db-wal
+
+# /tk multi-model review session scratch
+.tk-meeting/
+
+# Generated sprite assets / experiment scratch (大体积二进制，不入库)
+outputs/
+
+# 内嵌 git 仓库（参考用，不入库）
+work/open-design-reference/
