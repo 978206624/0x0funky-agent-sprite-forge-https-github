@@ -2,7 +2,7 @@ import { mkdirSync } from 'fs'
 import { join } from 'path'
 import { getDb } from '../db'
 import { createGeneration, updateGeneration } from '../db/generations-repo'
-import { runCodexExec, type CodexExecHandle } from '../codex/exec'
+import { runCodexExec, type CodexExecHandle, type CodexSandbox } from '../codex/exec'
 import { buildSpritePrompt, frameCount } from './prompt-builder'
 import { slugify, uniqueSlug } from './slug'
 import { validateBundleStrict } from './bundle'
@@ -19,6 +19,12 @@ export interface RunGenerationInput {
   /** 已解析的 codex 可执行文件路径。 */
   binPath: string
   params: GenParams
+  /** 生效的 sandbox 模式（IPC 层经 getEffectiveSandbox clamp 后传入）。省略=workspace-write。 */
+  sandbox?: CodexSandbox
+  /** 生成默认模型（--model）；省略=codex 自身默认。 */
+  model?: string
+  /** reasoning effort；省略=codex 默认。 */
+  effort?: string
   /** 超时（毫秒），省略用默认 20 分钟。 */
   timeoutMs?: number
   /** 转发 codex 事件流（上层经 IPC 推渲染层日志/进度）。 */
@@ -74,7 +80,9 @@ export function runGeneration(input: RunGenerationInput): RunGenerationHandle {
       binPath: input.binPath,
       projectDir: input.projectDir,
       prompt,
-      sandbox: 'workspace-write',
+      sandbox: input.sandbox ?? 'workspace-write',
+      model: input.model,
+      effort: input.effort,
       timeoutMs: input.timeoutMs ?? DEFAULT_TIMEOUT_MS,
       onEvent: input.onEvent,
       onStderr: input.onStderr

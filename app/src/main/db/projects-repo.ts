@@ -62,12 +62,17 @@ export function getProjectByPath(db: Database.Database, absPath: string): Projec
   return row ? rowToProject(row) : null
 }
 
-/** 最近项目列表：已打开的按 last_opened_at 倒序在前，未打开的按 created_at 倒序在后。 */
+/**
+ * 最近项目列表：按 last_opened_at 倒序。
+ * 只列「最近」项目（last_opened_at 非空）；被 forgetProject 置空的项目从列表隐藏，
+ * 但 projects 行与其 generations 历史保留——重新打开该文件夹即恢复（无损隐藏）。
+ */
 export function listProjects(db: Database.Database): Project[] {
   const rows = db
     .prepare(
       `SELECT * FROM projects
-       ORDER BY last_opened_at IS NULL, last_opened_at DESC, created_at DESC`
+       WHERE last_opened_at IS NOT NULL
+       ORDER BY last_opened_at DESC, created_at DESC`
     )
     .all() as ProjectRow[]
   return rows.map(rowToProject)
@@ -82,4 +87,13 @@ export function touchProject(db: Database.Database, id: number): void {
 /** 删除项目（外键 ON DELETE CASCADE：级联删除其 generations）。 */
 export function deleteProject(db: Database.Database, id: number): void {
   db.prepare('DELETE FROM projects WHERE id = ?').run(id)
+}
+
+/**
+ * 从「最近项目」列表无损隐藏：置空 last_opened_at（不删行、不删历史、不动磁盘）。
+ * listProjects 据此过滤；重新「打开文件夹」会 upsert 回 last_opened_at 使其重新出现，历史完好。
+ */
+export function forgetProject(db: Database.Database, id: number): void {
+  const now = new Date().toISOString()
+  db.prepare('UPDATE projects SET last_opened_at = NULL, updated_at = ? WHERE id = ?').run(now, id)
 }

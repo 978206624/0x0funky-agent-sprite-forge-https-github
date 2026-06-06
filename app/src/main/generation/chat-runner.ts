@@ -2,9 +2,10 @@ import { join } from 'path'
 import { getDb } from '../db'
 import { createGeneration } from '../db/generations-repo'
 import { createMessage, getConversation } from '../db/conversations-repo'
-import { runCodexExec, type CodexExecHandle } from '../codex/exec'
+import { runCodexExec, type CodexExecHandle, type CodexSandbox } from '../codex/exec'
 import { slugify, uniqueSlug } from './slug'
 import { inspectBundleLenient } from './bundle'
+import { maskSecrets } from '../../shared/mask'
 import type {
   CodexEvent,
   ChatMessage,
@@ -35,6 +36,12 @@ export interface RunChatTurnInput {
   userText: string
   /** 本轮之前的历史消息（不含本轮 user 消息），按时间正序。 */
   history: ChatMessage[]
+  /** 生效 sandbox（IPC 层 clamp 后传入）。省略=workspace-write。 */
+  sandbox?: CodexSandbox
+  /** 生成默认模型；省略=codex 默认。 */
+  model?: string
+  /** reasoning effort；省略=codex 默认。 */
+  effort?: string
   timeoutMs?: number
   onEvent: (event: CodexEvent) => void
   onStderr?: (chunk: string) => void
@@ -133,7 +140,9 @@ export function runChatTurn(input: RunChatTurnInput): RunChatTurnHandle {
 
   /** 落 assistant 消息并组装 join 形态返回。 */
   const finalize = (generation: GenerationRecord | null): ChatTurnResult => {
-    const text = agentTexts.join('\n\n').trim()
+    // 落库前脱敏：assistant 文本来自累积的 agent_message 原文（早于 IPC 层 maskEvent），
+    // 持久化/重载都经此，杜绝凭据进库。
+    const text = maskSecrets(agentTexts.join('\n\n').trim())
     const content = text || (generation ? `已生成 ${generation.slug}` : '（本轮无回复）')
     const msg = createMessage(db, {
       conversationId: input.conversationId,
@@ -156,7 +165,9 @@ export function runChatTurn(input: RunChatTurnInput): RunChatTurnHandle {
       binPath: input.binPath,
       projectDir: input.projectDir,
       prompt,
-      sandbox: 'workspace-write',
+      sandbox: input.sandbox ?? 'workspace-write',
+      model: input.model,
+      effort: input.effort,
       timeoutMs: input.timeoutMs ?? DEFAULT_TIMEOUT_MS,
       onEvent,
       onStderr: input.onStderr

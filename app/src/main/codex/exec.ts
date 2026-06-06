@@ -2,9 +2,9 @@ import { spawn } from 'child_process'
 import { StringDecoder } from 'string_decoder'
 import { needsShell } from './resolver'
 import type { CodexEvent } from '../../shared/types'
+import type { CodexSandbox } from '../../shared/settings-keys'
 
-/** codex sandbox 模式：默认 workspace-write（生成需写项目目录）。 */
-export type CodexSandbox = 'read-only' | 'workspace-write' | 'danger-full-access'
+export type { CodexSandbox }
 
 export interface CodexExecOptions {
   binPath: string
@@ -13,6 +13,10 @@ export interface CodexExecOptions {
   /** 经 stdin 传入的完整 prompt（避开命令行长度/转义问题）。 */
   prompt: string
   sandbox?: CodexSandbox
+  /** codex 模型（--model）；省略=用 codex 自身默认。 */
+  model?: string
+  /** reasoning effort；省略=用 codex 默认。经 -c model_reasoning_effort=<v> 注入。 */
+  effort?: string
   /** 超时（毫秒）；超时按进程树终结。0/省略=不超时。 */
   timeoutMs?: number
   /** 每条解析成功的 JSONL 事件回调（含未知兜底）。 */
@@ -106,6 +110,12 @@ export function runCodexExec(opts: CodexExecOptions): CodexExecHandle {
     '-C',
     opts.projectDir
   ]
+  // 模型：codex 0.137 `-m/--model <MODEL>`（探针确认）。
+  if (opts.model) args.push('--model', opts.model)
+  // reasoning effort：无专用 flag，经 `-c model_reasoning_effort='<v>'` TOML 覆盖注入。
+  // 值加单引号成合法 TOML 字符串（不依赖"裸词回退字面量"行为，抗 codex 后续版本变化）。
+  // effort 已在 IPC seam 经 EFFORTS 白名单（service.coerceEffort），值仅小写字母、无注入面。
+  if (opts.effort) args.push('-c', `model_reasoning_effort='${opts.effort}'`)
 
   const useShell = needsShell(opts.binPath)
   const child = useShell

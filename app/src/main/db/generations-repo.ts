@@ -102,6 +102,15 @@ export function listGenerationsByProject(
   return rows.map(rowToGeneration)
 }
 
+/**
+ * 清空某项目的全部产出历史记录（仅删 DB 行，保留磁盘 assets 文件）。
+ * 返回删除的行数。设置页「清空历史」用；调用方须先 isBusy() 守卫（勿在生成进行中删在途记录）。
+ */
+export function clearGenerationsByProject(db: Database.Database, projectId: number): number {
+  const info = db.prepare('DELETE FROM generations WHERE project_id = ?').run(projectId)
+  return info.changes
+}
+
 /** 更新产出记录的部分字段（status / thumbnail / outputDir / params）。 */
 export function updateGeneration(
   db: Database.Database,

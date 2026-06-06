@@ -1,6 +1,7 @@
 import type { CodexHealth } from '../../shared/types'
 import { resolveCodexPath } from './resolver'
 import { captureCodex } from './run'
+import { maskSecrets } from '../../shared/mask'
 
 function parseVersion(text: string): string | null {
   const m = text.match(/(\d+\.\d+\.\d+)/)
@@ -41,7 +42,9 @@ export async function detectCodex(): Promise<CodexHealth> {
       version,
       loggedIn: false,
       loginMethod: null,
-      error: ver.timedOut ? 'codex --version 超时' : versionText.trim() || 'codex --version 执行失败'
+      error: ver.timedOut
+        ? 'codex --version 超时'
+        : maskSecrets(versionText.trim()) || 'codex --version 执行失败'
     }
   }
 
@@ -55,6 +58,7 @@ export async function detectCodex(): Promise<CodexHealth> {
     version,
     loggedIn,
     loginMethod: loggedIn ? parseLoginMethod(loginText) : null,
-    error: loggedIn ? null : loginText || '未登录'
+    // login status 输出可能含密钥/令牌——展示前脱敏（error 会上屏到状态条/设置页）。
+    error: loggedIn ? null : maskSecrets(loginText) || '未登录'
   }
 }

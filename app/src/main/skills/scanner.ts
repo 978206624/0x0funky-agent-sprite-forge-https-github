@@ -2,6 +2,7 @@ import { homedir } from 'os'
 import { join } from 'path'
 import { readdirSync, readFileSync, statSync } from 'fs'
 import type { SkillInfo, SkillScanResult } from '../../shared/types'
+import { getSkillsDirOverride } from '../settings/service'
 
 /**
  * 已被本应用适配的 skill 白名单。首版仅 generate2dsprite 有对应参数表单与产物管线，
@@ -11,10 +12,12 @@ import type { SkillInfo, SkillScanResult } from '../../shared/types'
 const ADAPTED_SKILLS = new Set(['generate2dsprite'])
 
 /**
- * skill 扫描根目录：CODEX_SKILLS_DIR 环境变量覆盖 → 否则 ~/.codex/skills。
- * 路径完整可配（设置页）留待 Phase 10；本版用环境变量 + 默认，与 codex CODEX_BIN 解析风格一致。
+ * skill 扫描根目录：设置页自定义路径（skills.dir_override）→ CODEX_SKILLS_DIR 环境变量 → ~/.codex/skills。
+ * 不缓存：改设置后「重新扫描」即时生效。
  */
 export function resolveSkillsRoot(): string {
+  const override = getSkillsDirOverride()
+  if (override) return override
   const fromEnv = process.env.CODEX_SKILLS_DIR
   if (fromEnv && fromEnv.trim()) return fromEnv.trim()
   return join(homedir(), '.codex', 'skills')

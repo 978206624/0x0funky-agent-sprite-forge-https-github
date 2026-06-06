@@ -11,6 +11,8 @@ import {
 } from '../db/conversations-repo'
 import { runChatTurn, type RunChatTurnHandle } from '../generation/chat-runner'
 import { tryAcquire, release } from '../generation/lock'
+import { getGenDefaults, getEffectiveSandbox } from '../settings/service'
+import { maskSecrets, maskEvent } from '../../shared/mask'
 import type {
   CodexEvent,
   Conversation,
@@ -62,6 +64,12 @@ export function registerChatIpc(): void {
         })
 
         const wc = e.sender
+        // 对话无 GenParams，生成默认值只能从 settings 进 IPC seam（与 gen:start 一致）。
+        const defaults = getGenDefaults()
+        const { sandbox, downgraded } = getEffectiveSandbox(defaults.sandbox)
+        if (downgraded) {
+          safeSend(wc, 'chat:stderr', '已按安全设置将 sandbox 降级为 workspace-write（danger-full-access 未授权）\n')
+        }
         const handle = runChatTurn({
           conversationId: conversation.id,
           projectId: project.id,
@@ -70,8 +78,12 @@ export function registerChatIpc(): void {
           skill,
           userText: text,
           history,
-          onEvent: (ev: CodexEvent) => safeSend(wc, 'chat:event', ev),
-          onStderr: (chunk: string) => safeSend(wc, 'chat:stderr', chunk)
+          sandbox,
+          model: defaults.model,
+          effort: defaults.effort,
+          // 事件流与 stderr 推渲染层前都脱敏，防凭据上屏/进日志/进 devtools。
+          onEvent: (ev: CodexEvent) => safeSend(wc, 'chat:event', maskEvent(ev)),
+          onStderr: (chunk: string) => safeSend(wc, 'chat:stderr', maskSecrets(chunk))
         })
         active = handle
 

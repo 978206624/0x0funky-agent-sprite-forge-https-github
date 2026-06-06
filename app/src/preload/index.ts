@@ -36,7 +36,9 @@ const api = {
     open: (id: number): Promise<Project> => ipcRenderer.invoke('projects:open', id),
     setCurrent: (id: number | null): Promise<Project | null> =>
       ipcRenderer.invoke('projects:setCurrent', id),
-    getCurrent: (): Promise<Project | null> => ipcRenderer.invoke('projects:getCurrent')
+    getCurrent: (): Promise<Project | null> => ipcRenderer.invoke('projects:getCurrent'),
+    /** 从最近列表无损隐藏项目（保留行 + 历史）；当前项目会被主进程拒绝。 */
+    forget: (id: number): Promise<void> => ipcRenderer.invoke('projects:forget', id)
   },
   generation: {
     /** 用当前项目 + 参数发起一次生成；返回记录 id 与 slug（最终记录经 onDone 回传）。 */
@@ -72,6 +74,15 @@ const api = {
         ipcRenderer.invoke('db:settings:set', key, value),
       getAll: (): Promise<AppSettings> => ipcRenderer.invoke('db:settings:getAll')
     }
+  },
+  storage: {
+    /** 清空某项目的产出历史（仅删记录，保留磁盘）；任务进行中会被拒绝。返回删除行数。 */
+    clearHistory: (projectId: number): Promise<number> =>
+      ipcRenderer.invoke('settings:clearHistory', projectId),
+    /** SQLite 库文件路径。 */
+    dbPath: (): Promise<string> => ipcRenderer.invoke('storage:dbPath'),
+    /** 在系统文件管理器中定位库文件。 */
+    revealDb: (): Promise<void> => ipcRenderer.invoke('storage:revealDb')
   },
   export: {
     /** 导出某条产出的整套 bundle 到用户选定目录；返回 null 表示用户取消。 */

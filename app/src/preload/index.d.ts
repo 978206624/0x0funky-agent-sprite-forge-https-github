@@ -32,6 +32,8 @@ export interface ForgeApi {
     setCurrent: (id: number | null) => Promise<Project | null>
     /** 读取主进程当前项目（renderer 启动/刷新时同步状态；失效自愈清空返回 null） */
     getCurrent: () => Promise<Project | null>
+    /** 从最近列表无损隐藏项目（保留行 + 历史）；当前项目会被主进程拒绝 */
+    forget: (id: number) => Promise<void>
   }
   generation: {
     /** 用当前项目 + 参数发起一次生成；返回记录 id 与 slug */
@@ -63,6 +65,14 @@ export interface ForgeApi {
       set: (key: string, value: string) => Promise<void>
       getAll: () => Promise<AppSettings>
     }
+  }
+  storage: {
+    /** 清空某项目的产出历史（仅删记录，保留磁盘）；任务进行中会被拒绝。返回删除行数 */
+    clearHistory: (projectId: number) => Promise<number>
+    /** SQLite 库文件路径 */
+    dbPath: () => Promise<string>
+    /** 在系统文件管理器中定位库文件 */
+    revealDb: () => Promise<void>
   }
   export: {
     /** 导出某条产出的整套 bundle 到用户选定目录；返回 null 表示用户取消 */
