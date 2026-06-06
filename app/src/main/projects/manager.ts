@@ -3,6 +3,7 @@ import { mkdirSync, statSync, accessSync, realpathSync, constants } from 'fs'
 import { join, basename } from 'path'
 import { getDb } from '../db'
 import { createProject, getProject, touchProject } from '../db/projects-repo'
+import { isBusy } from '../generation/lock'
 import type { Project } from '../../shared/types'
 
 /** 主进程内存中的当前项目 id（供 Phase 6 生成时定位 codex -C 工作区）。 */
@@ -14,6 +15,13 @@ let currentProjectId: number | null = null
  * 返回设置后的当前项目（null 表示清空）。
  */
 export function setCurrentProject(id: number | null): Project | null {
+  // 主进程权威闭环：codex 任务（生成/对话）进行中拒绝切换当前项目。
+  // 渲染层「切项目」按钮虽有 busy 守卫，但 renderer 状态可能因窗口刷新/HMR 重载而复位、
+  // 守卫失效——此处不信任 renderer，用共享锁兜底，防旧任务完成后产物/消息错配到新项目。
+  // 仅拦截「切到不同项目或 null」；同项目幂等 re-set 放行（不影响 hydrate 等正常路径）。
+  if (id !== currentProjectId && isBusy()) {
+    throw new Error('任务进行中，无法切换项目，请先取消或等待完成')
+  }
   if (id === null) {
     currentProjectId = null
     return null

@@ -1,8 +1,11 @@
 import type Database from 'better-sqlite3'
-import { GENERATION_STATUSES } from '../../shared/types'
+import { GENERATION_STATUSES, CHAT_ROLES } from '../../shared/types'
 
 /** generations.status 的 CHECK 白名单，由 GENERATION_STATUSES 派生（单一事实源）。值为本地常量字面量，无注入面。 */
 const STATUS_CHECK_LIST = GENERATION_STATUSES.map((s) => `'${s}'`).join(', ')
+
+/** chat_messages.role 的 CHECK 白名单，由 CHAT_ROLES 派生（单一事实源）。 */
+const ROLE_CHECK_LIST = CHAT_ROLES.map((r) => `'${r}'`).join(', ')
 
 /**
  * 建表 + 索引。全部 `CREATE ... IF NOT EXISTS`，幂等可重复执行。
@@ -51,6 +54,34 @@ export function createTables(db: Database.Database): void {
       created_at  TEXT NOT NULL,
       updated_at  TEXT NOT NULL
     );
+
+    -- 对话会话（Phase 9）：绑定项目与发起时所用 skill
+    CREATE TABLE IF NOT EXISTS conversations (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      project_id  INTEGER NOT NULL,
+      skill       TEXT NOT NULL,
+      title       TEXT,
+      created_at  TEXT NOT NULL,
+      updated_at  TEXT NOT NULL,
+      FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_conversations_project
+      ON conversations(project_id, created_at DESC);
+
+    -- 对话消息（Phase 9）：user/assistant 交替；assistant 可关联一次产出
+    CREATE TABLE IF NOT EXISTS chat_messages (
+      id              INTEGER PRIMARY KEY AUTOINCREMENT,
+      conversation_id INTEGER NOT NULL,
+      role            TEXT NOT NULL CHECK (role IN (${ROLE_CHECK_LIST})), -- ChatRole 白名单
+      content         TEXT NOT NULL DEFAULT '',
+      generation_id   INTEGER,                  -- 该条 assistant 消息产出的 generation；删产出则置 NULL
+      created_at      TEXT NOT NULL,
+      updated_at      TEXT NOT NULL,
+      FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE,
+      FOREIGN KEY (generation_id) REFERENCES generations(id) ON DELETE SET NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_chat_messages_conversation
+      ON chat_messages(conversation_id, created_at ASC, id ASC);
   `)
 }
 

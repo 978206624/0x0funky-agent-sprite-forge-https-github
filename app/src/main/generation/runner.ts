@@ -1,13 +1,11 @@
-import { mkdirSync, existsSync, readFileSync } from 'fs'
+import { mkdirSync } from 'fs'
 import { join } from 'path'
 import { getDb } from '../db'
-import {
-  createGeneration,
-  updateGeneration,
-  listGenerationsByProject
-} from '../db/generations-repo'
+import { createGeneration, updateGeneration } from '../db/generations-repo'
 import { runCodexExec, type CodexExecHandle } from '../codex/exec'
 import { buildSpritePrompt, frameCount } from './prompt-builder'
+import { slugify, uniqueSlug } from './slug'
+import { validateBundleStrict } from './bundle'
 import type { CodexEvent, GenParams, GenerationRecord } from '../../shared/types'
 
 const SKILL = 'generate2dsprite'
@@ -36,89 +34,10 @@ export interface RunGenerationHandle {
   readonly done: Promise<GenerationRecord>
 }
 
-/** 把任意文本转成安全的 kebab slug（ascii 小写 + 连字符）。 */
-function slugify(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .split('-')
-    .filter(Boolean)
-    .slice(0, 5)
-    .join('-')
-    .slice(0, 60)
-    .replace(/-+$/g, '')
-}
-
 /** 从参数推导 slug 基名；空则回退 sprite。 */
 function baseSlug(params: GenParams): string {
   const parts = [params.theme, params.assetType, params.action].filter(Boolean).join(' ')
   return slugify(parts) || 'sprite'
-}
-
-/** 在当前项目内取唯一 slug：与已有记录及磁盘目录都不冲突，冲突则追加 -2/-3。 */
-function uniqueSlug(projectId: number, projectDir: string, params: GenParams): string {
-  const taken = new Set(listGenerationsByProject(getDb(), projectId).map((g) => g.slug))
-  const base = baseSlug(params)
-  const spritesDir = join(projectDir, 'assets', 'sprites')
-  let slug = base
-  let n = 2
-  while (taken.has(slug) || existsSync(join(spritesDir, slug))) {
-    slug = `${base}-${n++}`
-  }
-  return slug
-}
-
-/** pipeline-meta.json 中我们关心的字段（容错读取）。 */
-interface PipelineMeta {
-  frames?: unknown[]
-}
-
-/**
- * 校验落盘 bundle 是否齐全且帧数匹配网格。
- * 返回 { ok, thumbnail, reason }；失败时保留 raw-sheet 供排查（不删任何文件）。
- */
-function validateBundle(
-  outputDir: string,
-  slug: string,
-  expectedFrames: number
-): { ok: boolean; thumbnail: string | null; reason: string | null } {
-  // 仅 gate 核心可运行产物；include 清单里的 README.md / phaser-example.js 是辅助文件，缺失不判失败。
-  const required = [
-    'raw-sheet.png',
-    'raw-sheet-clean.png',
-    'sheet-transparent.png',
-    'animation.gif',
-    'prompt-used.txt',
-    'pipeline-meta.json'
-  ]
-  for (const f of required) {
-    if (!existsSync(join(outputDir, f))) {
-      return { ok: false, thumbnail: null, reason: `缺少产物文件：${f}` }
-    }
-  }
-  // 帧 PNG 齐全性。
-  for (let i = 1; i <= expectedFrames; i++) {
-    const frame = join(outputDir, `${slug}-${i}.png`)
-    if (!existsSync(frame)) {
-      return { ok: false, thumbnail: null, reason: `缺少帧文件：${slug}-${i}.png` }
-    }
-  }
-  // 帧数校验（以 pipeline-meta 为准）。
-  try {
-    const meta = JSON.parse(readFileSync(join(outputDir, 'pipeline-meta.json'), 'utf8')) as PipelineMeta
-    const actual = Array.isArray(meta.frames) ? meta.frames.length : -1
-    if (actual !== expectedFrames) {
-      return {
-        ok: false,
-        thumbnail: null,
-        reason: `帧数不符：期望 ${expectedFrames}，pipeline-meta 实得 ${actual}`
-      }
-    }
-  } catch {
-    return { ok: false, thumbnail: null, reason: 'pipeline-meta.json 解析失败' }
-  }
-  return { ok: true, thumbnail: join(outputDir, `${slug}-1.png`), reason: null }
 }
 
 /**
@@ -128,7 +47,7 @@ function validateBundle(
  */
 export function runGeneration(input: RunGenerationInput): RunGenerationHandle {
   const db = getDb()
-  const slug = uniqueSlug(input.projectId, input.projectDir, input.params)
+  const slug = uniqueSlug(input.projectId, input.projectDir, baseSlug(input.params))
   const outputDir = join(input.projectDir, 'assets', 'sprites', slug)
   mkdirSync(outputDir, { recursive: true })
 
@@ -177,7 +96,7 @@ export function runGeneration(input: RunGenerationInput): RunGenerationHandle {
       input.onStderr?.(`codex 退出码非 0：${outcome.code}\n`)
       return markFailed()
     }
-    const v = validateBundle(outputDir, slug, expected)
+    const v = validateBundleStrict(outputDir, slug, expected)
     if (!v.ok) {
       input.onStderr?.(`产物校验失败：${v.reason}\n`)
       return markFailed()

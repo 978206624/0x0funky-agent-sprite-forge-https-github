@@ -7,6 +7,7 @@ import { TopBar } from './components/layout/top-bar'
 import { ProjectPicker } from './components/project/project-picker'
 import { useCodexHealth } from './hooks/use-codex-health'
 import { useGenerationSubscription } from './hooks/use-generation'
+import { useChatSubscription } from './hooks/use-chat'
 import { useProjectStore } from './store/project-store'
 import { useSkillStore } from './store/skill-store'
 
@@ -19,6 +20,8 @@ export default function App() {
 
   // 把主进程生成事件流接到 generation-store（顶层订阅一次）。
   useGenerationSubscription()
+  // 把主进程对话事件流接到 chat-store（顶层订阅一次；不挂 panel，切 Tab 不丢流式）。
+  useChatSubscription()
 
   // 启动/刷新时从主进程同步当前项目，避免 renderer 状态与主进程脱节。
   useEffect(() => {

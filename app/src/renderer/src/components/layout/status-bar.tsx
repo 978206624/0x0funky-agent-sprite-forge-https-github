@@ -4,6 +4,7 @@ import { useProjectStore } from '../../store/project-store'
 import { useGenerationStore } from '../../store/generation-store'
 import { useHistoryStore } from '../../store/history-store'
 import { useParamStore } from '../../store/param-store'
+import { useChatStore } from '../../store/chat-store'
 import { useSkillStore } from '../../store/skill-store'
 
 /** 目标 skill：状态条第三灯以它是否被扫描到且已适配为准。 */
@@ -17,15 +18,23 @@ interface StatusBarProps {
 export function StatusBar({ health, loading }: StatusBarProps) {
   const current = useProjectStore((s) => s.current)
   const setCurrent = useProjectStore((s) => s.setCurrent)
-  // 生成进行中禁止切换项目：否则 generation-store 仍显旧项目状态、产物落到旧目录。
+  // 生成或对话进行中禁止切换项目：否则 codex 仍跑在旧项目、产物落旧目录，UI 却已切走。
   const generating = useGenerationStore((s) => s.status === 'running')
+  const chatSending = useChatStore((s) => s.sending)
+  const busy = generating || chatSending
 
   const switchProject = async (): Promise<void> => {
-    await window.api.projects.setCurrent(null)
-    // 回项目页前清空生成状态 + 历史/选中 + 参数表单，保持项目隔离，下个项目不带旧状态。
+    try {
+      await window.api.projects.setCurrent(null)
+    } catch {
+      // 主进程在 busy 时拒绝切项目（renderer 守卫因刷新/HMR 失效时的兜底）：保持当前项目，不复位。
+      return
+    }
+    // 回项目页前清空生成状态 + 历史/选中 + 参数表单 + 对话，保持项目隔离，下个项目不带旧状态。
     useGenerationStore.getState().reset()
     useHistoryStore.getState().reset()
     useParamStore.getState().reset()
+    useChatStore.getState().reset()
     setCurrent(null)
   }
 
@@ -73,8 +82,8 @@ export function StatusBar({ health, loading }: StatusBarProps) {
           <button
             type="button"
             onClick={() => void switchProject()}
-            disabled={generating}
-            title={generating ? '生成进行中，请先取消或等待完成' : undefined}
+            disabled={busy}
+            title={busy ? '生成或对话进行中，请先取消或等待完成' : undefined}
             className="shrink-0 rounded-sm px-1.5 py-0.5 text-[11px] text-fg-dim transition-colors hover:bg-hover hover:text-fg disabled:pointer-events-none disabled:opacity-40"
           >
             切换项目

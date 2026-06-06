@@ -8,7 +8,12 @@ import type {
   GenerationUpdate,
   AppSettings,
   ExportResult,
-  SkillScanResult
+  SkillScanResult,
+  Conversation,
+  ChatMessageWithGen,
+  ChatSendInput,
+  ChatSendResult,
+  ChatTurnResult
 } from '../shared/types'
 
 export interface ForgeApi {
@@ -69,7 +74,22 @@ export interface ForgeApi {
     /** 重新扫描 skill 目录（同 scan） */
     rescan: () => Promise<SkillScanResult>
   }
-  // 后续 Phase 扩展：chat
+  chat: {
+    /** 发起一轮对话（conversationId=null 时主进程新建会话） */
+    send: (input: ChatSendInput) => Promise<ChatSendResult>
+    /** 取消进行中的对话轮 */
+    cancel: () => Promise<void>
+    /** 列出会话消息（join 关联产出） */
+    listMessages: (conversationId: number) => Promise<ChatMessageWithGen[]>
+    /** 取当前项目最近的会话；无则 null */
+    getLatestConversation: () => Promise<Conversation | null>
+    /** 订阅 codex 事件流，返回退订函数 */
+    onEvent: (cb: (ev: CodexEvent) => void) => () => void
+    /** 订阅 stderr 诊断片段，返回退订函数 */
+    onStderr: (cb: (chunk: string) => void) => () => void
+    /** 订阅对话轮结束（assistant 消息 + 可选产出），返回退订函数 */
+    onDone: (cb: (result: ChatTurnResult) => void) => () => void
+  }
 }
 
 declare global {

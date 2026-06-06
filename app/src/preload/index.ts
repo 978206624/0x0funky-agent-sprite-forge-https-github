@@ -9,7 +9,12 @@ import type {
   GenerationUpdate,
   AppSettings,
   ExportResult,
-  SkillScanResult
+  SkillScanResult,
+  Conversation,
+  ChatMessageWithGen,
+  ChatSendInput,
+  ChatSendResult,
+  ChatTurnResult
 } from '../shared/types'
 
 /** 订阅一个 ipc 频道并返回退订函数（renderer 卸载/刷新时清理监听）。 */
@@ -78,6 +83,24 @@ const api = {
     scan: (): Promise<SkillScanResult> => ipcRenderer.invoke('skills:scan'),
     /** 重新扫描 skill 目录（同 scan）。 */
     rescan: (): Promise<SkillScanResult> => ipcRenderer.invoke('skills:rescan')
+  },
+  chat: {
+    /** 发起一轮对话：携会话 id（null=新建）+ 文本 + 当前 skill；返回会话 id 与用户消息 id。 */
+    send: (input: ChatSendInput): Promise<ChatSendResult> => ipcRenderer.invoke('chat:send', input),
+    /** 取消进行中的对话轮。 */
+    cancel: (): Promise<void> => ipcRenderer.invoke('chat:cancel'),
+    /** 列出会话消息（join 关联产出）。 */
+    listMessages: (conversationId: number): Promise<ChatMessageWithGen[]> =>
+      ipcRenderer.invoke('chat:listMessages', conversationId),
+    /** 取当前项目最近的会话；无则 null。 */
+    getLatestConversation: (): Promise<Conversation | null> =>
+      ipcRenderer.invoke('chat:getLatestConversation'),
+    /** 订阅 codex 事件流（流式文本/进度），返回退订函数。 */
+    onEvent: (cb: (ev: CodexEvent) => void): (() => void) => subscribe('chat:event', cb),
+    /** 订阅 stderr 诊断片段，返回退订函数。 */
+    onStderr: (cb: (chunk: string) => void): (() => void) => subscribe('chat:stderr', cb),
+    /** 订阅对话轮结束（assistant 消息 + 可选产出），返回退订函数。 */
+    onDone: (cb: (result: ChatTurnResult) => void): (() => void) => subscribe('chat:done', cb)
   }
 }
 

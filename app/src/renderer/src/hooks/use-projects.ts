@@ -4,6 +4,7 @@ import { useProjectStore } from '../store/project-store'
 import { useGenerationStore } from '../store/generation-store'
 import { useHistoryStore } from '../store/history-store'
 import { useParamStore } from '../store/param-store'
+import { useChatStore } from '../store/chat-store'
 
 export interface UseProjects {
   recent: Project[]
@@ -47,10 +48,11 @@ export function useProjects(): UseProjects {
   const enter = useCallback(
     async (p: Project) => {
       await window.api.projects.setCurrent(p.id)
-      // 进入新项目前清空生成状态 + 历史/选中 + 参数表单，保持项目隔离，不带上一个项目的状态。
+      // 进入新项目前清空生成状态 + 历史/选中 + 参数表单 + 对话，保持项目隔离，不带上一个项目的状态。
       useGenerationStore.getState().reset()
       useHistoryStore.getState().reset()
       useParamStore.getState().reset()
+      useChatStore.getState().reset()
       setCurrent(p)
     },
     [setCurrent]

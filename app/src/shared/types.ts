@@ -137,6 +137,99 @@ export interface GenerationUpdate {
 /** 全局设置：key-value 映射。 */
 export type AppSettings = Record<string, string>
 
+// ============================================================
+// 对话（Phase 9：对话 Tab — agent 对话式生成与迭代）
+// ============================================================
+
+/**
+ * 合法的对话消息角色（单一事实源）。
+ * DB 的 CHECK 约束、repo 写入边界的运行时校验、TS 类型都由此派生，三处不漂移
+ * （与 GENERATION_STATUSES 同款）。
+ */
+export const CHAT_ROLES = ['user', 'assistant'] as const
+
+/** 对话消息角色。 */
+export type ChatRole = (typeof CHAT_ROLES)[number]
+
+/** 对话会话：绑定项目与发起时所用 skill。 */
+export interface Conversation {
+  id: number
+  /** 所属项目 id（外键 projects.id） */
+  projectId: number
+  /** 发起会话时的 skill，如 generate2dsprite */
+  skill: string
+  /** 会话标题（首版由首条用户消息派生，可为 null） */
+  title: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+/** 新建会话入参。 */
+export interface ConversationInput {
+  projectId: number
+  skill: string
+  title?: string | null
+}
+
+/** 对话消息：一条用户或 Codex 消息，可关联一次产出。 */
+export interface ChatMessage {
+  id: number
+  /** 所属会话 id（外键 conversations.id） */
+  conversationId: number
+  role: ChatRole
+  content: string
+  /** 该条 assistant 消息产出的 generation id；无则 null（ON DELETE SET NULL） */
+  generationId: number | null
+  createdAt: string
+  updatedAt: string
+}
+
+/** 新建消息入参。 */
+export interface ChatMessageInput {
+  conversationId: number
+  role: ChatRole
+  content: string
+  generationId?: number | null
+}
+
+/** 更新消息入参（仅传需要改的字段）。 */
+export interface ChatMessageUpdate {
+  content?: string
+  generationId?: number | null
+}
+
+/**
+ * 消息 join 关联产出后的形态：渲染层据此内联展示缩略图 + 「应用为产出」。
+ * 冷加载（listMessages）与 turn 结束载荷统一返回此形态，重启后仍拿得到完整记录。
+ */
+export type ChatMessageWithGen = ChatMessage & { generation: GenerationRecord | null }
+
+/** chat:send 成功返回：本次会话 id 与刚持久化的用户消息 id（最终 assistant 经 chat:done 回传）。 */
+export interface ChatSendResult {
+  conversationId: number
+  userMessageId: number
+}
+
+/** chat:send 入参。conversationId 为 null 时主进程新建会话。 */
+export interface ChatSendInput {
+  conversationId: number | null
+  text: string
+  /** 当前选中 skill（skill-store.currentId）；主进程不持有渲染层选中态，故由渲染层携带。 */
+  skill: string
+}
+
+/**
+ * 一轮对话结束的载荷（chat:done）：持久化后的 assistant 消息（join 产出）+ 本轮产出（无则 null）。
+ * 渲染层 just-finished 轮信任此载荷直接 append，不整列表 reload（避免气泡 remount 闪烁）。
+ */
+export interface ChatTurnResult {
+  /** 本轮所属项目 id：渲染层 onDone 防御性校验，挡跨项目错配（窗口刷新/切项目后旧轮回来）。 */
+  projectId: number
+  conversationId: number
+  assistantMessage: ChatMessageWithGen
+  generation: GenerationRecord | null
+}
+
 /** 导出 bundle 结果（IPC 返回 null 表示用户取消了目录选择）。 */
 export interface ExportResult {
   /** 被导出的产出 slug。 */

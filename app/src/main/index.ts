@@ -4,6 +4,7 @@ import { registerCodexIpc } from './ipc/codex'
 import { registerDbIpc } from './ipc/db'
 import { registerProjectsIpc } from './ipc/projects'
 import { registerGenerationIpc } from './ipc/generation'
+import { registerChatIpc } from './ipc/chat'
 import { registerExportIpc } from './ipc/export'
 import { registerSkillsIpc } from './ipc/skills'
 import { registerAssetSchemePrivileges, registerAssetProtocol } from './protocol/asset'
@@ -81,6 +82,7 @@ app.whenReady().then(() => {
   registerDbIpc()
   registerProjectsIpc()
   registerGenerationIpc()
+  registerChatIpc()
   registerExportIpc()
   registerSkillsIpc()
   createWindow()
