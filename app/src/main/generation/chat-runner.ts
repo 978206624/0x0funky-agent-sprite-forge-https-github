@@ -6,6 +6,7 @@ import { runCodexExec, type CodexExecHandle, type CodexSandbox } from '../codex/
 import { slugify, uniqueSlug } from './slug'
 import { inspectBundleLenient } from './bundle'
 import { maskSecrets } from '../../shared/mask'
+import { syncSkillToProject, cleanupSkillInProject } from '../skills/sync'
 import type {
   CodexEvent,
   ChatMessage,
@@ -176,6 +177,14 @@ export function runChatTurn(input: RunChatTurnInput): RunChatTurnHandle {
     }
   }
 
+  // 生成前把本轮 skill 从自管库同步到项目 .codex/skills/ 供 codex 挂载；失败则按无产出轮结束。
+  try {
+    syncSkillToProject(skill, input.projectDir)
+  } catch (err) {
+    input.onStderr?.(`同步 skill 失败：${String(err)}\n`)
+    return { cancel: () => {}, done: Promise.resolve(finalize(null)) }
+  }
+
   let exec: CodexExecHandle
   try {
     exec = runCodexExec({
@@ -192,10 +201,12 @@ export function runChatTurn(input: RunChatTurnInput): RunChatTurnHandle {
     })
   } catch (err) {
     input.onStderr?.(`启动 codex 失败：${String(err)}\n`)
+    cleanupSkillInProject(skill, input.projectDir)
     return { cancel: () => {}, done: Promise.resolve(finalize(null)) }
   }
 
-  const done = exec.done.then((outcome): ChatTurnResult => {
+  const done = exec.done
+    .then((outcome): ChatTurnResult => {
     // 仅正常完成（退出码 0）才探测 bundle；超时/错误/取消一律按无产出文本轮处理。
     if (outcome.result !== 'completed' || outcome.code !== 0) {
       if (outcome.result === 'completed') {
@@ -220,7 +231,9 @@ export function runChatTurn(input: RunChatTurnInput): RunChatTurnHandle {
       thumbnail: found.thumbnail
     })
     return finalize(record)
-  })
+    })
+    // 无论成功/失败/取消/超时，都清理项目内临时 skill 副本。
+    .finally(() => cleanupSkillInProject(skill, input.projectDir))
 
   return { cancel: exec.cancel, done }
 }

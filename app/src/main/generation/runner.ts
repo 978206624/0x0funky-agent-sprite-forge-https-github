@@ -6,6 +6,7 @@ import { runCodexExec, type CodexExecHandle, type CodexSandbox } from '../codex/
 import { buildSpritePrompt, frameCount } from './prompt-builder'
 import { slugify, uniqueSlug } from './slug'
 import { validateBundleStrict } from './bundle'
+import { syncSkillToProject, cleanupSkillInProject } from '../skills/sync'
 import type { CodexEvent, GenParams, GenerationRecord } from '../../shared/types'
 
 const SKILL = 'generate2dsprite'
@@ -73,6 +74,14 @@ export function runGeneration(input: RunGenerationInput): RunGenerationHandle {
   const markFailed = (): GenerationRecord =>
     updateGeneration(db, record.id, { status: 'failed' }) ?? record
 
+  // 生成前把 skill 从自管库同步到项目 .codex/skills/ 供 codex 挂载；失败则中止本次生成。
+  try {
+    syncSkillToProject(SKILL, input.projectDir)
+  } catch (err) {
+    input.onStderr?.(`同步 skill 失败：${String(err)}\n`)
+    return { generationId: record.id, slug, cancel: () => {}, done: Promise.resolve(markFailed()) }
+  }
+
   // spawn 同步失败（参数非法等）也要把已入库的 running 记录落到 failed，不留悬挂状态。
   let exec: CodexExecHandle
   try {
@@ -90,10 +99,12 @@ export function runGeneration(input: RunGenerationInput): RunGenerationHandle {
     })
   } catch (err) {
     input.onStderr?.(`启动 codex 失败：${String(err)}\n`)
+    cleanupSkillInProject(SKILL, input.projectDir)
     return { generationId: record.id, slug, cancel: () => {}, done: Promise.resolve(markFailed()) }
   }
 
-  const done = exec.done.then((outcome): GenerationRecord => {
+  const done = exec.done
+    .then((outcome): GenerationRecord => {
     if (outcome.result === 'canceled') {
       return updateGeneration(db, record.id, { status: 'canceled' }) ?? record
     }
@@ -113,7 +124,9 @@ export function runGeneration(input: RunGenerationInput): RunGenerationHandle {
     return (
       updateGeneration(db, record.id, { status: 'success', thumbnail: v.thumbnail }) ?? record
     )
-  })
+    })
+    // 无论成功/失败/取消/超时，都清理项目内临时 skill 副本。
+    .finally(() => cleanupSkillInProject(SKILL, input.projectDir))
 
   return { generationId: record.id, slug, cancel: exec.cancel, done }
 }

@@ -4,6 +4,7 @@ import { join, basename } from 'path'
 import { getDb } from '../db'
 import { createProject, getProject, touchProject } from '../db/projects-repo'
 import { isBusy } from '../generation/lock'
+import { cleanupResidualSkills } from '../skills/sync'
 import type { Project } from '../../shared/types'
 
 /** 主进程内存中的当前项目 id（供 Phase 6 生成时定位 codex -C 工作区）。 */
@@ -29,6 +30,8 @@ export function setCurrentProject(id: number | null): Project | null {
   const proj = getProject(getDb(), id)
   if (!proj) throw new Error(`项目不存在：id=${id}`)
   assertWritableDir(proj.absPath)
+  // 切到不同项目时清理可能的崩溃残留（上次生成被强杀未跑到清理）。同项目幂等 re-set 不重复清。
+  if (id !== currentProjectId) cleanupResidualSkills(proj.absPath)
   currentProjectId = id
   return proj
 }
