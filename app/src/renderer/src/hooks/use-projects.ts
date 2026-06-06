@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Project } from '@shared/types'
 import { useProjectStore } from '../store/project-store'
+import { useGenerationStore } from '../store/generation-store'
 
 export interface UseProjects {
   recent: Project[]
@@ -44,6 +45,8 @@ export function useProjects(): UseProjects {
   const enter = useCallback(
     async (p: Project) => {
       await window.api.projects.setCurrent(p.id)
+      // 进入新项目前清空生成状态，避免带过来上一个项目的日志/产物预览。
+      useGenerationStore.getState().reset()
       setCurrent(p)
     },
     [setCurrent]

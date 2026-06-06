@@ -33,6 +33,8 @@ interface GenerationState {
   pushStderr: (chunk: string) => void
   /** 生成结束：落最终记录并据 status 置态。 */
   finish: (record: GenerationRecord) => void
+  /** 清空到初始态（切换/进入项目时调用，避免把上一个项目的日志/产物带过去）。 */
+  reset: () => void
 }
 
 let logSeq = 0
@@ -127,5 +129,9 @@ export const useGenerationStore = create<GenerationState>((set, get) => ({
 
   finish: (record) => {
     set({ status: record.status as GenStatus, lastRecord: record, slug: record.slug })
+  },
+
+  reset: () => {
+    set({ status: 'idle', slug: null, generationId: null, logs: [], lastRecord: null, error: null })
   }
 }))

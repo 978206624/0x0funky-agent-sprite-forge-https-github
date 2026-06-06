@@ -1,4 +1,7 @@
 import type { GenParams } from '../../shared/types'
+import { resolveGrid, resolveCell } from '../../shared/sprite-grid'
+
+export { frameCount } from '../../shared/sprite-grid'
 
 /**
  * 把参数表单 + 主题组装为交给 codex 的自然语言指令。
@@ -6,32 +9,8 @@ import type { GenParams } from '../../shared/types'
  * 跑后处理脚本。本指令的职责是把工作台的结构化约束（网格/帧尺寸/对齐/容纳/落盘位置）
  * 显式钉死，让产出可复现、并落到 <项目>/assets/sprites/<slug>/。
  * 对照真实 prompt-used.txt + SKILL.md 参数语义编写。
+ * 网格/帧尺寸计算复用 shared/sprite-grid（与渲染层 use-preview 同口径）。
  */
-
-/** 解析有效网格（rows×cols）。未指定时按动作给保守默认（参照 SKILL.md Defaults）。 */
-export function resolveGrid(params: GenParams): { rows: number; cols: number } {
-  if (params.gridRows && params.gridCols && params.gridRows > 0 && params.gridCols > 0) {
-    return { rows: Math.floor(params.gridRows), cols: Math.floor(params.gridCols) }
-  }
-  // SKILL.md 默认：cast→2x3，其余短动作→2x2。
-  const action = (params.action ?? '').toLowerCase()
-  if (action === 'cast' || action === 'attack' || action === 'run' || action === 'charge') {
-    return { rows: 3, cols: 2 }
-  }
-  return { rows: 2, cols: 2 }
-}
-
-/** 总帧数 = rows × cols。 */
-export function frameCount(params: GenParams): number {
-  const { rows, cols } = resolveGrid(params)
-  return rows * cols
-}
-
-/** cell_size 正整数兜底：非 UI 调用方传小数/0/负/NaN 时回退 256。 */
-export function resolveCell(params: GenParams): number {
-  const n = Math.floor(params.frameWidth ?? NaN)
-  return Number.isFinite(n) && n > 0 ? n : 256
-}
 
 export interface SpritePromptInput {
   /** 产出 slug，决定落盘目录与帧文件名前缀。 */

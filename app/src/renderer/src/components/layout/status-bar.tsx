@@ -16,6 +16,8 @@ export function StatusBar({ health, loading }: StatusBarProps) {
 
   const switchProject = async (): Promise<void> => {
     await window.api.projects.setCurrent(null)
+    // 回项目页前清空生成状态，避免下个项目带上旧日志/产物。
+    useGenerationStore.getState().reset()
     setCurrent(null)
   }
 
