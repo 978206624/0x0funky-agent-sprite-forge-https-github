@@ -9,6 +9,7 @@ import type {
   GenerationUpdate,
   AppSettings,
   ExportResult,
+  SkillInfo,
   SkillListResult,
   Conversation,
   ChatMessageWithGen,
@@ -95,7 +96,23 @@ const api = {
   },
   skills: {
     /** 列出 app 自管库中的受管 skill（内置 + 导入/新建）。 */
-    list: (): Promise<SkillListResult> => ipcRenderer.invoke('skills:list')
+    list: (): Promise<SkillListResult> => ipcRenderer.invoke('skills:list'),
+    /** 导入本机 skill 文件夹（原生选择器）；取消返回 null。 */
+    importFolder: (): Promise<SkillInfo | null> => ipcRenderer.invoke('skills:importFolder'),
+    /** 导入 skill .zip（原生选择器）；取消返回 null。 */
+    importZip: (): Promise<SkillInfo | null> => ipcRenderer.invoke('skills:importZip'),
+    /** 新建一个最小 skill（scaffold SKILL.md）。 */
+    create: (name: string): Promise<SkillInfo> => ipcRenderer.invoke('skills:create', name),
+    /** 删除受管 skill（内置项会被主进程拒绝）。 */
+    remove: (id: string): Promise<void> => ipcRenderer.invoke('skills:delete', id),
+    /** 列出某 skill 目录内可编辑文件相对路径。 */
+    listFiles: (id: string): Promise<string[]> => ipcRenderer.invoke('skills:listFiles', id),
+    /** 读取某 skill 内文件内容。 */
+    readFile: (id: string, relPath: string): Promise<string> =>
+      ipcRenderer.invoke('skills:readFile', id, relPath),
+    /** 写入某 skill 内文件内容。 */
+    writeFile: (id: string, relPath: string, content: string): Promise<void> =>
+      ipcRenderer.invoke('skills:writeFile', id, relPath, content)
   },
   chat: {
     /** 发起一轮对话：携会话 id（null=新建）+ 文本 + 当前 skill；返回会话 id 与用户消息 id。 */

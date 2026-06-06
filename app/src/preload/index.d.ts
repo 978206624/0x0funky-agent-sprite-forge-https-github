@@ -8,6 +8,7 @@ import type {
   GenerationUpdate,
   AppSettings,
   ExportResult,
+  SkillInfo,
   SkillListResult,
   Conversation,
   ChatMessageWithGen,
@@ -85,6 +86,20 @@ export interface ForgeApi {
   skills: {
     /** 列出 app 自管库中的受管 skill（内置 + 导入/新建） */
     list: () => Promise<SkillListResult>
+    /** 导入本机 skill 文件夹（原生选择器）；取消返回 null */
+    importFolder: () => Promise<SkillInfo | null>
+    /** 导入 skill .zip（原生选择器）；取消返回 null */
+    importZip: () => Promise<SkillInfo | null>
+    /** 新建一个最小 skill（scaffold SKILL.md） */
+    create: (name: string) => Promise<SkillInfo>
+    /** 删除受管 skill（内置项会被主进程拒绝） */
+    remove: (id: string) => Promise<void>
+    /** 列出某 skill 目录内可编辑文件相对路径 */
+    listFiles: (id: string) => Promise<string[]>
+    /** 读取某 skill 内文件内容 */
+    readFile: (id: string, relPath: string) => Promise<string>
+    /** 写入某 skill 内文件内容 */
+    writeFile: (id: string, relPath: string, content: string) => Promise<void>
   }
   chat: {
     /** 发起一轮对话（conversationId=null 时主进程新建会话） */

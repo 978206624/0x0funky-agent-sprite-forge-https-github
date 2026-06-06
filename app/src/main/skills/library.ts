@@ -90,6 +90,11 @@ function readSkill(root: string, id: string): SkillInfo | null {
   }
 }
 
+/** 读取自管库中单个 skill 的 SkillInfo；不存在/无 SKILL.md 返回 null。 */
+export function getSkillInfo(id: string): SkillInfo | null {
+  return readSkill(skillLibraryRoot(), id)
+}
+
 /**
  * 列出 app 自管库（userData/skills/）中的受管 skill。
  * 跳过：以 `.` 开头的隐藏目录、非目录项、无 SKILL.md 的目录。
