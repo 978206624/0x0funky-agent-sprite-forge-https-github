@@ -21,6 +21,10 @@ export interface ForgeApi {
     /** 检测本机 codex 安装与登录状态 */
     detect: () => Promise<CodexHealth>
   }
+  dialog: {
+    /** 原生多选图片对话框，返回所选参考图绝对路径数组（取消=空数组） */
+    pickImages: () => Promise<string[]>
+  }
   projects: {
     /** 最近项目列表（最近打开优先） */
     list: () => Promise<Project[]>

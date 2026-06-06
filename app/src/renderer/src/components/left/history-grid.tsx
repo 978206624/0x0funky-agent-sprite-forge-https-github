@@ -79,8 +79,22 @@ function HistoryCard({
   )
 }
 
-/** 左栏产出历史：按当前项目从 DB 列记录，点击重载预览 + 回填参数。 */
-export function HistoryGrid() {
+/**
+ * 产出历史网格：按当前项目从 DB 列记录。
+ * variant：'rail' 窄列两栏（默认）/ 'full' 铺满主区自适应多列。
+ * onPick：覆盖点卡片行为（如历史视图改为本地预览，不回填参数/不跳工作台）；
+ *         不传则走默认 open（选中预览 + 回填参数表单，即改参重生）。
+ * selectedId：外部受控高亮（配合 onPick）；不传则用全局 selected 高亮。
+ */
+export function HistoryGrid({
+  variant = 'rail',
+  onPick,
+  selectedId
+}: {
+  variant?: 'rail' | 'full'
+  onPick?: (record: GenerationRecord) => void
+  selectedId?: number
+} = {}) {
   const { records, selected, loading, open } = useHistory()
 
   if (loading && records.length === 0) {
@@ -89,18 +103,24 @@ export function HistoryGrid() {
   if (records.length === 0) {
     return (
       <p className="rounded-md border border-dashed border-edge bg-base/50 p-3 text-center text-[11px] text-fg-dim">
-        还没有产出，填右侧参数点「生成」开始。
+        还没有产出，填参数点「生成」开始。
       </p>
     )
   }
+  const gridClass =
+    variant === 'full'
+      ? 'grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-3'
+      : 'grid grid-cols-2 gap-2'
+  const isSelected = (r: GenerationRecord): boolean =>
+    selectedId !== undefined ? r.id === selectedId : selected?.id === r.id
   return (
-    <div className="grid grid-cols-2 gap-2">
+    <div className={gridClass}>
       {records.map((r) => (
         <HistoryCard
           key={r.id}
           record={r}
-          selected={selected?.id === r.id}
-          onOpen={() => open(r)}
+          selected={isSelected(r)}
+          onOpen={() => (onPick ? onPick(r) : open(r))}
         />
       ))}
     </div>

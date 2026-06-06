@@ -17,6 +17,8 @@ export interface CodexExecOptions {
   model?: string
   /** reasoning effort；省略=用 codex 默认。经 -c model_reasoning_effort=<v> 注入。 */
   effort?: string
+  /** 参考图绝对路径列表；经 codex `--image <path>` 逐个附给首条消息。空/省略=不附图。 */
+  images?: string[]
   /** 超时（毫秒）；超时按进程树终结。0/省略=不超时。 */
   timeoutMs?: number
   /** 每条解析成功的 JSONL 事件回调（含未知兜底）。 */
@@ -116,6 +118,11 @@ export function runCodexExec(opts: CodexExecOptions): CodexExecHandle {
   // 值加单引号成合法 TOML 字符串（不依赖"裸词回退字面量"行为，抗 codex 后续版本变化）。
   // effort 已在 IPC seam 经 EFFORTS 白名单（service.coerceEffort），值仅小写字母、无注入面。
   if (opts.effort) args.push('-c', `model_reasoning_effort='${opts.effort}'`)
+  // 参考图：codex `--image <path>` 可重复，附给首条消息（stdin prompt）作视觉参照。
+  // 路径来自渲染层原生文件选择器（用户显式选取），shell 场景由 quoteArg 安全引用。
+  if (opts.images?.length) {
+    for (const img of opts.images) args.push('--image', img)
+  }
 
   const useShell = needsShell(opts.binPath)
   const child = useShell

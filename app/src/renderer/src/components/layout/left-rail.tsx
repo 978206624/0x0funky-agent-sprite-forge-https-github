@@ -1,32 +1,54 @@
-import { Settings } from 'lucide-react'
-import { SectionHeader } from '../ui/section-header'
-import { HistoryGrid } from '../left/history-grid'
+import { Images, LayoutDashboard, Settings } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { useSettingsStore } from '../../store/settings-store'
+import { useLayoutStore, type LeftTab } from '../../store/layout-store'
+
+const TABS: { key: LeftTab; label: string; icon: LucideIcon }[] = [
+  { key: 'workbench', label: '工作台', icon: LayoutDashboard },
+  { key: 'history', label: '产出历史', icon: Images }
+]
 
 /**
- * 左栏：仅产出历史（占满主区）+ 底部设置入口。
- * Skill 库已迁入设置页「Skill」tab（首版仅一个适配 skill，切换低频，不占左栏黄金位）；
- * 当前选中 skill 由右栏顶部徽标常驻显示。
+ * 左栏：VSCode 风格图标活动栏。切换的是整个中间主区（工作台 / 产出历史），
+ * 不再带独立侧栏列；项目状态信息已移至顶部栏。底部为设置入口。
  */
 export function LeftRail() {
   const openSettings = useSettingsStore((s) => s.openSettings)
-  return (
-    <aside className="flex w-60 shrink-0 flex-col gap-5 border-r border-edge bg-panel p-3">
-      <section className="flex flex-1 flex-col gap-3 overflow-hidden">
-        <SectionHeader>产出历史</SectionHeader>
-        <div className="flex-1 overflow-auto">
-          <HistoryGrid />
-        </div>
-      </section>
+  const leftTab = useLayoutStore((s) => s.leftTab)
+  const setLeftTab = useLayoutStore((s) => s.setLeftTab)
 
+  return (
+    <nav className="flex w-12 shrink-0 flex-col items-center border-r border-edge bg-base py-2">
+      <div className="flex flex-1 flex-col items-center gap-1">
+        {TABS.map(({ key, label, icon: Icon }) => {
+          const active = key === leftTab
+          return (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setLeftTab(key)}
+              title={label}
+              className={`relative flex h-10 w-10 items-center justify-center rounded-md transition-colors ${
+                active ? 'text-fg' : 'text-fg-dim hover:bg-hover hover:text-fg'
+              }`}
+            >
+              {/* 选中态左侧高亮条（VSCode 同款） */}
+              {active && (
+                <span className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-r bg-accent" />
+              )}
+              <Icon className="h-5 w-5" />
+            </button>
+          )
+        })}
+      </div>
       <button
         type="button"
         onClick={() => openSettings()}
-        className="flex items-center gap-2 rounded-sm px-3 py-2 text-left hover:bg-hover"
+        title="设置"
+        className="flex h-10 w-10 items-center justify-center rounded-md text-fg-dim transition-colors hover:bg-hover hover:text-fg"
       >
-        <Settings className="h-4 w-4 text-fg-soft" />
-        <span className="text-[13px] text-fg-soft">设置</span>
+        <Settings className="h-5 w-5" />
       </button>
-    </aside>
+    </nav>
   )
 }

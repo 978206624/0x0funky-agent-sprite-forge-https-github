@@ -17,8 +17,8 @@ interface ChatState {
 
   /** 按项目冷加载最近会话 + 其消息（进入/切换/刷新项目时调用，不动进行中状态）。 */
   load: (projectId: number) => Promise<void>
-  /** 发送一轮：乐观插入用户气泡 → 调主进程 → 流式回填。 */
-  send: (text: string) => Promise<void>
+  /** 发送一轮：乐观插入用户气泡 → 调主进程 → 流式回填。attachments=本轮参考图绝对路径。 */
+  send: (text: string, attachments?: string[]) => Promise<void>
   /** 取消进行中的一轮。 */
   cancel: () => Promise<void>
   /** 消费 codex 事件（流式更新 assistant 实时气泡）。 */
@@ -80,7 +80,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }
   },
 
-  send: async (text) => {
+  send: async (text, attachments = []) => {
     const trimmed = text.trim()
     if (!trimmed || get().sending) return
     const skill = useSkillStore.getState().currentId
@@ -110,7 +110,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
       const { conversationId } = await window.api.chat.send({
         conversationId: get().conversationId,
         text: trimmed,
-        skill
+        skill,
+        attachments
       })
       // 只记录会话 id；乐观用户气泡保留临时 id 作为稳定 React key（不替换，避免 remount 闪烁）。
       // 冷加载 load() 是整列表 set 替换（reset 后才发生、非 append），无重复渲染之虞。

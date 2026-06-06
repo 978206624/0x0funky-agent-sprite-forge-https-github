@@ -12,6 +12,7 @@ import {
 import { runChatTurn, type RunChatTurnHandle } from '../generation/chat-runner'
 import { tryAcquire, release } from '../generation/lock'
 import { getGenDefaults, getEffectiveSandbox } from '../settings/service'
+import { sanitizeImagePaths } from '../codex/image-paths'
 import { maskSecrets, maskEvent } from '../../shared/mask'
 import type {
   CodexEvent,
@@ -41,6 +42,8 @@ export function registerChatIpc(): void {
         if (!text) throw new Error('消息不能为空')
         const skill = (input?.skill ?? '').trim()
         if (!skill) throw new Error('未选择 skill')
+        // 附件图路径不可信：主进程白名单校验（绝对路径 + 扩展名 + 真实文件 + 限量）后才进入 --image。
+        const attachments = sanitizeImagePaths(input?.attachments)
         const project = getCurrentProject()
         if (!project) throw new Error('未选择当前项目')
         const binPath = await resolveCodexPath()
@@ -77,6 +80,7 @@ export function registerChatIpc(): void {
           binPath,
           skill,
           userText: text,
+          attachments,
           history,
           sandbox,
           model: defaults.model,

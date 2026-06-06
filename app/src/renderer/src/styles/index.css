@@ -83,3 +83,37 @@ body {
 .pixelated {
   image-rendering: pixelated;
 }
+
+/* ── rehype-highlight 语法高亮（深色系，对齐 base/panel/elevated 灰阶）── */
+.hljs { background: transparent !important; padding: 0 !important; }
+.hljs-keyword { color: #c084fc; }
+.hljs-string, .hljs-template-variable { color: #86efac; }
+.hljs-number, .hljs-literal { color: #fbbf24; }
+.hljs-comment, .hljs-quote { color: #6b6b73; font-style: italic; }
+.hljs-function .hljs-title, .hljs-title.function_ { color: #8b5cf6; }
+.hljs-built_in { color: #67e8f9; }
+.hljs-type, .hljs-class .hljs-title { color: #fbbf24; }
+.hljs-attr, .hljs-attribute { color: #c084fc; }
+.hljs-variable { color: #ececee; }
+.hljs-params { color: #a1a1aa; }
+.hljs-meta { color: #6b6b73; }
+.hljs-selector-class, .hljs-selector-tag { color: #f87171; }
+.hljs-tag { color: #f87171; }
+.hljs-name { color: #f87171; }
+.hljs-attribute { color: #c084fc; }
+
+/* ── 对话区 Markdown 排版微调 ── */
+.chat-markdown pre {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-edge) transparent;
+}
+.chat-markdown pre::-webkit-scrollbar {
+  height: 4px;
+}
+.chat-markdown pre::-webkit-scrollbar-thumb {
+  background: var(--color-edge);
+  border-radius: 2px;
+}
+.chat-markdown pre::-webkit-scrollbar-track {
+  background: transparent;
+}

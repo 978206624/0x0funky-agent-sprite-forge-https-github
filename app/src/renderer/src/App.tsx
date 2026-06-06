@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { CenterPanel } from './components/layout/center-panel'
+import { HistoryView } from './components/center/history-view'
 import { LeftRail } from './components/layout/left-rail'
 import { RightPanel } from './components/layout/right-panel'
 import { StatusBar } from './components/layout/status-bar'
@@ -9,6 +10,7 @@ import { SettingsPage } from './components/settings/settings-page'
 import { useCodexHealth } from './hooks/use-codex-health'
 import { useGenerationSubscription } from './hooks/use-generation'
 import { useChatSubscription } from './hooks/use-chat'
+import { useLayoutStore } from './store/layout-store'
 import { useProjectStore } from './store/project-store'
 import { useSkillStore } from './store/skill-store'
 
@@ -18,6 +20,7 @@ export default function App() {
   const hydrate = useProjectStore((s) => s.hydrate)
   const { health, loading, refresh } = useCodexHealth()
   const ready = !!health?.installed && !!health?.loggedIn
+  const leftTab = useLayoutStore((s) => s.leftTab)
 
   // 把主进程生成事件流接到 generation-store（顶层订阅一次）。
   useGenerationSubscription()
@@ -45,8 +48,12 @@ export default function App() {
       <TopBar />
       <div className="flex flex-1 overflow-hidden">
         <LeftRail />
-        <CenterPanel ready={ready} health={health} loading={loading} onRetry={refresh} />
-        <RightPanel ready={ready} />
+        {leftTab === 'workbench' ? (
+          <CenterPanel ready={ready} health={health} loading={loading} onRetry={refresh} />
+        ) : (
+          <HistoryView />
+        )}
+        <RightPanel />
       </div>
       <StatusBar health={health} loading={loading} />
       {/* 设置页覆盖层：在工作台之后渲染、不卸载工作台（生成/对话进行中打开不中断）。 */}

@@ -83,6 +83,7 @@ export function runGeneration(input: RunGenerationInput): RunGenerationHandle {
       sandbox: input.sandbox ?? 'workspace-write',
       model: input.model,
       effort: input.effort,
+      images: input.params.refImages,
       timeoutMs: input.timeoutMs ?? DEFAULT_TIMEOUT_MS,
       onEvent: input.onEvent,
       onStderr: input.onStderr

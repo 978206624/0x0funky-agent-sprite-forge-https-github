@@ -82,6 +82,8 @@ export interface GenParams {
   duration?: number
   /** 是否所有帧共享统一缩放 */
   sharedScale?: boolean
+  /** 参考图绝对路径列表（经 codex --image 附给首条消息作视觉参照；空/省略=纯文生图） */
+  refImages?: string[]
   /** codex 模型 */
   model?: string
   /** 推理强度（effort） */
@@ -216,6 +218,8 @@ export interface ChatSendInput {
   text: string
   /** 当前选中 skill（skill-store.currentId）；主进程不持有渲染层选中态，故由渲染层携带。 */
   skill: string
+  /** 本轮附件图绝对路径列表（经 codex --image 附给本轮消息；空/省略=纯文本轮）。 */
+  attachments?: string[]
 }
 
 /**

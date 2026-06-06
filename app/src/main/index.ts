@@ -8,6 +8,7 @@ import { registerChatIpc } from './ipc/chat'
 import { registerExportIpc } from './ipc/export'
 import { registerSkillsIpc } from './ipc/skills'
 import { registerStorageIpc } from './ipc/storage'
+import { registerDialogIpc } from './ipc/dialog'
 import { registerAssetSchemePrivileges, registerAssetProtocol } from './protocol/asset'
 import { initDatabase, closeDatabase } from './db'
 
@@ -87,6 +88,7 @@ app.whenReady().then(() => {
   registerExportIpc()
   registerSkillsIpc()
   registerStorageIpc()
+  registerDialogIpc()
   createWindow()
 
   app.on('activate', () => {

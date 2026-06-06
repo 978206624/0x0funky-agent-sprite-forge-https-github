@@ -44,12 +44,18 @@ export function buildSpritePrompt(input: SpritePromptInput): string {
   const theme = params.theme?.trim() || `a ${assetType} ${action} animation`
 
   const advanced = advancedLines(params)
+  const refCount = params.refImages?.length ?? 0
 
   return [
     'Use the generate2dsprite skill to produce one 2D game sprite animation sheet.',
     '',
     `Subject / theme: ${theme}`,
     `Asset type: ${assetType}. Action: ${action}. View: ${view}.`,
+    ...(refCount
+      ? [
+          `Reference images: ${refCount} image(s) are attached to this message. Use them as the primary visual reference for the character's identity, design, color palette and art style; keep the generated sprite faithful to them while still satisfying the layout and constraints below.`
+        ]
+      : []),
     '',
     'Sheet layout (must match exactly):',
     `- grid: ${rows} rows by ${cols} columns, ${frames} equal cells, read left-to-right top-to-bottom`,

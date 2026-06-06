@@ -4,6 +4,7 @@ import { getCurrentProject } from '../projects/manager'
 import { runGeneration, type RunGenerationHandle } from '../generation/runner'
 import { tryAcquire, release } from '../generation/lock'
 import { getGenDefaults, getEffectiveSandbox, coerceEffort } from '../settings/service'
+import { sanitizeImagePaths } from '../codex/image-paths'
 import { maskSecrets, maskEvent } from '../../shared/mask'
 import type { CodexEvent, GenParams, GenerationRecord } from '../../shared/types'
 
@@ -40,11 +41,12 @@ export function registerGenerationIpc(): void {
       if (downgraded) {
         safeSend(wc, 'gen:stderr', '已按安全设置将 sandbox 降级为 workspace-write（danger-full-access 未授权）\n')
       }
+      // 参考图路径不可信：主进程白名单校验后才进入生成（防绕过选择器注入 --image）。
       const handle = runGeneration({
         projectId: project.id,
         projectDir: project.absPath,
         binPath,
-        params,
+        params: { ...params, refImages: sanitizeImagePaths(params.refImages) },
         sandbox,
         // model 自由文本（codex 接受任意模型名）只 trim；effort 必经白名单（防任意串拼进 -c）。
         model: params.model?.trim() || defaults.model,

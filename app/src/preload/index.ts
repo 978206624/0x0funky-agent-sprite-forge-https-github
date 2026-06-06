@@ -29,6 +29,10 @@ const api = {
   codex: {
     detect: (): Promise<CodexHealth> => ipcRenderer.invoke('codex:detect')
   },
+  dialog: {
+    /** 原生多选图片对话框，返回所选参考图绝对路径数组（取消=空数组）。 */
+    pickImages: (): Promise<string[]> => ipcRenderer.invoke('dialog:pickImages')
+  },
   projects: {
     list: (): Promise<Project[]> => ipcRenderer.invoke('projects:list'),
     pickAndCreate: (name?: string): Promise<Project | null> =>

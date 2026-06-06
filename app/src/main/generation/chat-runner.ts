@@ -34,6 +34,8 @@ export interface RunChatTurnInput {
   skill: string
   /** 本轮用户输入。 */
   userText: string
+  /** 本轮附件图绝对路径列表（经 codex --image 附给本轮消息）。 */
+  attachments?: string[]
   /** 本轮之前的历史消息（不含本轮 user 消息），按时间正序。 */
   history: ChatMessage[]
   /** 生效 sandbox（IPC 层 clamp 后传入）。省略=workspace-write。 */
@@ -64,8 +66,9 @@ function buildChatPrompt(args: {
   skill: string
   history: ChatMessage[]
   userText: string
+  attachmentCount: number
 }): string {
-  const { slug, skill, history, userText } = args
+  const { slug, skill, history, userText, attachmentCount } = args
   const outDir = `assets/sprites/${slug}`
   const recent = history.slice(-HISTORY_WINDOW)
   const transcript = recent.length
@@ -81,6 +84,11 @@ function buildChatPrompt(args: {
     transcript,
     '',
     `User (current request): ${userText.trim()}`,
+    ...(attachmentCount
+      ? [
+          `The user attached ${attachmentCount} reference image(s) to this message. If you generate or revise a sprite this turn, use them as the primary visual reference for the character's identity, design, color palette and art style.`
+        ]
+      : []),
     '',
     'How to respond:',
     '- Reply conversationally in the user\'s language, briefly stating what you did or asking a clarifying question.',
@@ -103,15 +111,17 @@ function buildChatPrompt(args: {
 }
 
 /** 从 meta 探测 + 用户输入推导对话产物的 GenParams（grid 以 meta 真实值为准，保证预览/回填正确）。 */
-function chatParams(userText: string, inspection: {
-  rows: number | null
-  cols: number | null
-  cell: number | null
-}): GenParams {
+function chatParams(
+  userText: string,
+  inspection: { rows: number | null; cols: number | null; cell: number | null },
+  attachments: string[]
+): GenParams {
   const p: GenParams = { theme: userText.trim() || undefined, extra: { source: 'chat' } }
   if (inspection.rows !== null) p.gridRows = inspection.rows
   if (inspection.cols !== null) p.gridCols = inspection.cols
   if (inspection.cell !== null) p.frameWidth = inspection.cell
+  // 本轮参考图也落进记录，使历史「应用到工作台」回填时不丢参考图（与参数面板生成口径一致）。
+  if (attachments.length) p.refImages = attachments
   return p
 }
 
@@ -125,7 +135,14 @@ export function runChatTurn(input: RunChatTurnInput): RunChatTurnHandle {
   const skill = input.skill || SKILL_FALLBACK
   const slug = uniqueSlug(input.projectId, input.projectDir, slugify(input.userText) || 'chat')
   const outputDir = join(input.projectDir, 'assets', 'sprites', slug)
-  const prompt = buildChatPrompt({ slug, skill, history: input.history, userText: input.userText })
+  const attachments = input.attachments ?? []
+  const prompt = buildChatPrompt({
+    slug,
+    skill,
+    history: input.history,
+    userText: input.userText,
+    attachmentCount: attachments.length
+  })
 
   // 累积本轮 agent 文本：只取 item.completed 的 agent_message 终文（不含 item.updated 流式增量），
   // 防 updated+completed 重复拼接。多条 completed 按序拼接。
@@ -168,6 +185,7 @@ export function runChatTurn(input: RunChatTurnInput): RunChatTurnHandle {
       sandbox: input.sandbox ?? 'workspace-write',
       model: input.model,
       effort: input.effort,
+      images: attachments,
       timeoutMs: input.timeoutMs ?? DEFAULT_TIMEOUT_MS,
       onEvent,
       onStderr: input.onStderr
@@ -196,7 +214,7 @@ export function runChatTurn(input: RunChatTurnInput): RunChatTurnHandle {
       slug,
       skill,
       status: 'success',
-      params: chatParams(input.userText, found),
+      params: chatParams(input.userText, found, attachments),
       prompt,
       outputDir,
       thumbnail: found.thumbnail

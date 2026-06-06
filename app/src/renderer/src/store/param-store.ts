@@ -13,10 +13,15 @@ export interface FormState {
   sourcePadding: string
   duration: string
   sharedScale: boolean
+  /** 参考图绝对路径列表（经 codex --image 参与生成）。 */
+  refImages: string[]
 }
 
+/** 资源描述输入框的占位示例（仅作 placeholder 提示，非预填真值）。 */
+export const THEME_PLACEHOLDER = '例：火法师，红袍金边，手持法杖，施放火焰魔法，像素风格，面向右侧'
+
 export const INITIAL_FORM: FormState = {
-  theme: '火法师，红袍金边，手持法杖，施放火焰魔法，像素风格，面向右侧',
+  theme: '',
   action: 'cast',
   rows: 3,
   cols: 2,
@@ -25,7 +30,8 @@ export const INITIAL_FORM: FormState = {
   fitScale: '',
   sourcePadding: '',
   duration: '',
-  sharedScale: true
+  sharedScale: true,
+  refImages: []
 }
 
 /** 正整数兜底：清空/非法输入（NaN/0/负）回退到 fallback，避免把 0 或 NaN 传给后端。 */
@@ -47,6 +53,7 @@ export function toParams(f: FormState): GenParams {
     alignment: f.align,
     sharedScale: f.sharedScale
   }
+  if (f.refImages.length) p.refImages = f.refImages
   // 高级数值：仅在填了且为有限数时带上，否则交给 skill 推断。
   const fit = Number(f.fitScale)
   if (f.fitScale !== '' && Number.isFinite(fit)) p.fitScale = fit
@@ -79,7 +86,8 @@ function paramsToForm(p: GenParams | null): FormState {
     fitScale: numToStr(p.fitScale),
     sourcePadding: numToStr(p.sourcePadding),
     duration: numToStr(p.duration),
-    sharedScale: p.sharedScale ?? INITIAL_FORM.sharedScale
+    sharedScale: p.sharedScale ?? INITIAL_FORM.sharedScale,
+    refImages: p.refImages ?? []
   }
 }
 
