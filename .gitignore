@@ -27,6 +27,7 @@ Thumbs.db
 
 # /tk multi-model review session scratch
 .tk-meeting/
+work/tk-phase8/
 
 # Generated sprite assets / experiment scratch (大体积二进制，不入库)
 outputs/
@@ -34,8 +35,19 @@ outputs/
 # 内嵌 git 仓库（参考用，不入库）
 work/open-design-reference/
 
+# 早期管线开发的诊断 bundle scratch（已 git rm --cached 移出，保留磁盘，大体积二进制不入库）
+work/fire-mage-cast-diag/
+work/fire-mage-cast-diag-v2/
+
 # Claude per-task review 状态文件
 .claude/.needs-review
+
+# Claude 调度锁等运行时残留
+.claude/scheduled_tasks.lock
+
+# Python 字节码缓存
+__pycache__/
+*.pyc
 
 # TS 增量编译缓存
 *.tsbuildinfo
