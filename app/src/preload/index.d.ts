@@ -6,7 +6,8 @@ import type {
   GenerationRecord,
   GenerationInput,
   GenerationUpdate,
-  AppSettings
+  AppSettings,
+  ExportResult
 } from '../shared/types'
 
 export interface ForgeApi {
@@ -57,7 +58,11 @@ export interface ForgeApi {
       getAll: () => Promise<AppSettings>
     }
   }
-  // 后续 Phase 扩展：skills、generation（事件流）、chat
+  export: {
+    /** 导出某条产出的整套 bundle 到用户选定目录；返回 null 表示用户取消 */
+    bundle: (generationId: number) => Promise<ExportResult | null>
+  }
+  // 后续 Phase 扩展：skills、chat
 }
 
 declare global {

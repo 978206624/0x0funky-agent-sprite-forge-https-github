@@ -2,6 +2,8 @@ import type { CodexHealth } from '@shared/types'
 import { StatusLight, type LightStatus } from '../ui/status-light'
 import { useProjectStore } from '../../store/project-store'
 import { useGenerationStore } from '../../store/generation-store'
+import { useHistoryStore } from '../../store/history-store'
+import { useParamStore } from '../../store/param-store'
 
 interface StatusBarProps {
   health: CodexHealth | null
@@ -16,8 +18,10 @@ export function StatusBar({ health, loading }: StatusBarProps) {
 
   const switchProject = async (): Promise<void> => {
     await window.api.projects.setCurrent(null)
-    // 回项目页前清空生成状态，避免下个项目带上旧日志/产物。
+    // 回项目页前清空生成状态 + 历史/选中 + 参数表单，保持项目隔离，下个项目不带旧状态。
     useGenerationStore.getState().reset()
+    useHistoryStore.getState().reset()
+    useParamStore.getState().reset()
     setCurrent(null)
   }
 

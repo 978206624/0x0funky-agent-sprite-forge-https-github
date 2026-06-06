@@ -1,13 +1,13 @@
 import { ChevronDown, ChevronRight, Sparkles, X, Zap } from 'lucide-react'
 import { useState } from 'react'
 import type { ReactNode } from 'react'
-import type { GenParams } from '@shared/types'
 import { Button } from '../ui/button'
 import { NumberInput } from '../ui/number-input'
 import { Select } from '../ui/select'
 import { SectionHeader } from '../ui/section-header'
 import { TextArea } from '../ui/text-input'
 import { useGenerationStore } from '../../store/generation-store'
+import { useParamStore, toParams, type FormState } from '../../store/param-store'
 
 type RightTab = 'params' | 'chat'
 
@@ -23,62 +23,6 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
       {children}
     </div>
   )
-}
-
-/** 参数表单的受控状态。空字符串的高级数值项表示「交给 skill 推断」。 */
-interface FormState {
-  theme: string
-  action: string
-  rows: number
-  cols: number
-  cell: number
-  align: string
-  fitScale: string
-  sourcePadding: string
-  duration: string
-  sharedScale: boolean
-}
-
-const INITIAL_FORM: FormState = {
-  theme: '火法师，红袍金边，手持法杖，施放火焰魔法，像素风格，面向右侧',
-  action: 'cast',
-  rows: 3,
-  cols: 2,
-  cell: 256,
-  align: 'bottom',
-  fitScale: '',
-  sourcePadding: '',
-  duration: '',
-  sharedScale: true
-}
-
-/** 正整数兜底：清空/非法输入（NaN/0/负）回退到 fallback，避免把 0 或 NaN 传给后端。 */
-function posInt(v: number, fallback: number): number {
-  const n = Math.floor(v)
-  return Number.isFinite(n) && n > 0 ? n : fallback
-}
-
-/** 受控表单 → GenParams（仅带上有效字段，数值做正整数兜底）。 */
-function toParams(f: FormState): GenParams {
-  const p: GenParams = {
-    theme: f.theme.trim() || undefined,
-    assetType: 'player',
-    action: f.action,
-    view: 'side',
-    gridRows: posInt(f.rows, 1),
-    gridCols: posInt(f.cols, 1),
-    frameWidth: posInt(f.cell, 256),
-    alignment: f.align,
-    sharedScale: f.sharedScale
-  }
-  // 高级数值：仅在填了且为有限数时带上，否则交给 skill 推断。
-  const fit = Number(f.fitScale)
-  if (f.fitScale !== '' && Number.isFinite(fit)) p.fitScale = fit
-  const pad = Number(f.sourcePadding)
-  if (f.sourcePadding !== '' && Number.isFinite(pad)) p.sourcePadding = pad
-  const dur = Number(f.duration)
-  if (f.duration !== '' && Number.isFinite(dur)) p.duration = dur
-  return p
 }
 
 function ParamsTab({
@@ -231,7 +175,7 @@ function ParamsTab({
 function ChatTab() {
   return (
     <div className="flex flex-1 items-center justify-center p-4">
-      <span className="text-sm text-fg-dim">对话区 · Phase 8 实现</span>
+      <span className="text-sm text-fg-dim">对话区 · Phase 9 实现</span>
     </div>
   )
 }
@@ -242,8 +186,8 @@ interface RightPanelProps {
 
 export function RightPanel({ ready }: RightPanelProps) {
   const [tab, setTab] = useState<RightTab>('params')
-  const [form, setForm] = useState<FormState>(INITIAL_FORM)
-  const set = (patch: Partial<FormState>): void => setForm((f) => ({ ...f, ...patch }))
+  const form = useParamStore((s) => s.form)
+  const set = useParamStore((s) => s.set)
 
   const status = useGenerationStore((s) => s.status)
   const error = useGenerationStore((s) => s.error)

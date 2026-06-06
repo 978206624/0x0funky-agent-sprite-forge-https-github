@@ -137,6 +137,14 @@ export interface GenerationUpdate {
 /** 全局设置：key-value 映射。 */
 export type AppSettings = Record<string, string>
 
+/** 导出 bundle 结果（IPC 返回 null 表示用户取消了目录选择）。 */
+export interface ExportResult {
+  /** 被导出的产出 slug。 */
+  slug: string
+  /** 最终写入的目标目录绝对路径（`<destRoot>/<slug>/`）。 */
+  dest: string
+}
+
 // ============================================================
 // codex exec --json 事件流（Phase 6：生成执行）
 // 真实格式由探针实测（见 .tk-meeting 探针 jsonl）：每行一个 JSON，顶层 `type` 判别，

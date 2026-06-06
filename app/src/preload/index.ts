@@ -7,7 +7,8 @@ import type {
   GenerationRecord,
   GenerationInput,
   GenerationUpdate,
-  AppSettings
+  AppSettings,
+  ExportResult
 } from '../shared/types'
 
 /** 订阅一个 ipc 频道并返回退订函数（renderer 卸载/刷新时清理监听）。 */
@@ -65,6 +66,11 @@ const api = {
         ipcRenderer.invoke('db:settings:set', key, value),
       getAll: (): Promise<AppSettings> => ipcRenderer.invoke('db:settings:getAll')
     }
+  },
+  export: {
+    /** 导出某条产出的整套 bundle 到用户选定目录；返回 null 表示用户取消。 */
+    bundle: (generationId: number): Promise<ExportResult | null> =>
+      ipcRenderer.invoke('export:bundle', generationId)
   }
 }
 

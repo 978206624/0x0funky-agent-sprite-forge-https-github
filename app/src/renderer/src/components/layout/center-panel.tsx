@@ -6,6 +6,7 @@ import { PreviewStage, type PreviewView } from '../center/preview-stage'
 import { PlaybackBar } from '../center/playback-bar'
 import { SegmentedControl } from '../ui/segmented-control'
 import { useGenerationStore, type GenStatus, type LogTone } from '../../store/generation-store'
+import { useHistoryStore } from '../../store/history-store'
 import { usePreview } from '../../hooks/use-preview'
 import { usePlayback } from '../../hooks/use-playback'
 
@@ -55,6 +56,41 @@ export function CenterPanel({ ready, health, loading, onRetry }: CenterPanelProp
   const preview = usePreview()
   const pb = usePlayback(preview?.frameCount ?? 0, view === 'frame')
 
+  // 导出当前选中产出：仅成功记录可导出（来自历史选中，刷新后仍可用）。
+  const selected = useHistoryStore((s) => s.selected)
+  const canExport = selected?.status === 'success'
+  const [exporting, setExporting] = useState(false)
+  const [exportMsg, setExportMsg] = useState<{ text: string; ok: boolean } | null>(null)
+  // 成功反馈自动消失定时器；卸载/重发时清理，避免滞留与内存泄漏。
+  const exportTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  useEffect(() => () => clearExportTimer(), [])
+
+  function clearExportTimer(): void {
+    if (exportTimer.current) {
+      clearTimeout(exportTimer.current)
+      exportTimer.current = null
+    }
+  }
+
+  const handleExport = async (): Promise<void> => {
+    if (!selected || selected.status !== 'success' || exporting) return
+    clearExportTimer()
+    setExporting(true)
+    setExportMsg(null)
+    try {
+      const res = await window.api.export.bundle(selected.id)
+      // res 为 null = 用户取消选择目录，不提示。成功提示 4s 后自动消失（错误保留待用户处理）。
+      if (res) {
+        setExportMsg({ text: `已导出到 ${res.dest}`, ok: true })
+        exportTimer.current = setTimeout(() => setExportMsg(null), 4000)
+      }
+    } catch (e) {
+      setExportMsg({ text: e instanceof Error ? e.message : '导出失败', ok: false })
+    } finally {
+      setExporting(false)
+    }
+  }
+
   // 新日志自动滚到底。
   const logEndRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
@@ -73,7 +109,9 @@ export function CenterPanel({ ready, health, loading, onRetry }: CenterPanelProp
     <main className="flex flex-1 flex-col bg-base">
       <div className="flex h-12 shrink-0 items-center justify-between border-b border-edge px-4">
         <div className="flex items-center gap-3">
-          <span className="text-sm font-semibold text-fg">{preview?.slug ?? slug ?? '尚未生成'}</span>
+          <span className="text-sm font-semibold text-fg">
+            {running ? (slug ?? '生成中…') : (selected?.slug ?? '尚未生成')}
+          </span>
           {running && <Loader2 className="h-4 w-4 animate-spin text-accent" />}
           {preview && (
             <span className="font-mono text-xs text-fg-dim">
@@ -81,16 +119,29 @@ export function CenterPanel({ ready, health, loading, onRetry }: CenterPanelProp
             </span>
           )}
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          {exportMsg && (
+            <span
+              title={exportMsg.text}
+              className={`max-w-[260px] truncate font-mono text-[11px] ${exportMsg.ok ? 'text-success' : 'text-error'}`}
+            >
+              {exportMsg.text}
+            </span>
+          )}
           <SegmentedControl options={VIEW_OPTIONS} value={view} onChange={setView} />
           <span className="font-mono text-xs text-fg-soft">100%</span>
           <button
             type="button"
-            disabled={status !== 'success'}
+            disabled={!canExport || exporting}
+            onClick={() => void handleExport()}
             className="inline-flex items-center gap-2 rounded-md border border-edge bg-elevated px-3 py-2 text-xs font-medium text-fg-soft hover:bg-hover hover:text-fg disabled:pointer-events-none disabled:opacity-50"
           >
-            <Download className="h-[15px] w-[15px]" />
-            导出
+            {exporting ? (
+              <Loader2 className="h-[15px] w-[15px] animate-spin" />
+            ) : (
+              <Download className="h-[15px] w-[15px]" />
+            )}
+            {exporting ? '导出中…' : '导出'}
           </button>
         </div>
       </div>
