@@ -11,6 +11,7 @@ import { registerStorageIpc } from './ipc/storage'
 import { registerDialogIpc } from './ipc/dialog'
 import { registerAssetSchemePrivileges, registerAssetProtocol } from './protocol/asset'
 import { initDatabase, closeDatabase } from './db'
+import { initSkillLibrary } from './skills/library'
 
 // asset:// scheme 权限必须在 app ready 之前注册。
 registerAssetSchemePrivileges()
@@ -79,6 +80,7 @@ function createWindow(): void {
 
 app.whenReady().then(() => {
   initDatabase()
+  initSkillLibrary()
   registerAssetProtocol()
   registerCodexIpc()
   registerDbIpc()
