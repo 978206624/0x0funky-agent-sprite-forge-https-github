@@ -9,7 +9,7 @@ import type {
   GenerationUpdate,
   AppSettings,
   ExportResult,
-  SkillScanResult,
+  SkillListResult,
   Conversation,
   ChatMessageWithGen,
   ChatSendInput,
@@ -94,10 +94,8 @@ const api = {
       ipcRenderer.invoke('export:bundle', generationId)
   },
   skills: {
-    /** 扫描 skill 目录，返回已安装 skill 列表与元信息。 */
-    scan: (): Promise<SkillScanResult> => ipcRenderer.invoke('skills:scan'),
-    /** 重新扫描 skill 目录（同 scan）。 */
-    rescan: (): Promise<SkillScanResult> => ipcRenderer.invoke('skills:rescan')
+    /** 列出 app 自管库中的受管 skill（内置 + 导入/新建）。 */
+    list: (): Promise<SkillListResult> => ipcRenderer.invoke('skills:list')
   },
   chat: {
     /** 发起一轮对话：携会话 id（null=新建）+ 文本 + 当前 skill；返回会话 id 与用户消息 id。 */

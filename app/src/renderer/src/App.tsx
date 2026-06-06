@@ -32,9 +32,9 @@ export default function App() {
     void hydrate()
   }, [hydrate])
 
-  // 启动时扫描一次 skill 目录（左栏 Skill 库 + 状态条第三灯据此点亮）。
+  // 启动时加载一次 skill 库（设置页 Skill 库 + 状态条第三灯据此点亮）。
   useEffect(() => {
-    void useSkillStore.getState().scan()
+    void useSkillStore.getState().list()
   }, [])
 
   // 水合完成前不渲染，避免在恢复当前项目前闪一下项目页。

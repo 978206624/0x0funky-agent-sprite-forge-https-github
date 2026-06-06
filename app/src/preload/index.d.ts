@@ -8,7 +8,7 @@ import type {
   GenerationUpdate,
   AppSettings,
   ExportResult,
-  SkillScanResult,
+  SkillListResult,
   Conversation,
   ChatMessageWithGen,
   ChatSendInput,
@@ -83,10 +83,8 @@ export interface ForgeApi {
     bundle: (generationId: number) => Promise<ExportResult | null>
   }
   skills: {
-    /** 扫描 skill 目录，返回已安装 skill 列表与元信息 */
-    scan: () => Promise<SkillScanResult>
-    /** 重新扫描 skill 目录（同 scan） */
-    rescan: () => Promise<SkillScanResult>
+    /** 列出 app 自管库中的受管 skill（内置 + 导入/新建） */
+    list: () => Promise<SkillListResult>
   }
   chat: {
     /** 发起一轮对话（conversationId=null 时主进程新建会话） */

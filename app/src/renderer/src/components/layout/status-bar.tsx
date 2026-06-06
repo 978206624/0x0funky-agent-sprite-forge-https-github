@@ -48,7 +48,7 @@ export function StatusBar({ health, loading }: StatusBarProps) {
   const skillStatus: LightStatus = !skillResult ? 'muted' : skillMounted ? 'success' : 'error'
   // 文案精简：成功态去掉冗余 "skill " 前缀，避免长文案在窄窗口挤压右侧项目名。
   const skillLabel = !skillResult
-    ? 'skill 扫描中…'
+    ? 'skill 加载中…'
     : skillMounted
       ? `${TARGET_SKILL} 已挂载`
       : 'skill 未挂载'

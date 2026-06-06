@@ -84,8 +84,3 @@ export function getEffectiveSandbox(requested?: string): {
 export function getCodexBinOverride(): string | undefined {
   return readOptional(SETTINGS_KEYS.codexBinOverride)
 }
-
-/** skill 扫描目录自定义路径；未配置返回 undefined。 */
-export function getSkillsDirOverride(): string | undefined {
-  return readOptional(SETTINGS_KEYS.skillsDirOverride)
-}

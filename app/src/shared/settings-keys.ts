@@ -22,8 +22,6 @@ export const SETTINGS_KEYS = {
   genSandbox: 'gen.sandbox',
   /** codex 可执行文件自定义路径（覆盖 CODEX_BIN/PATH），空=不覆盖 */
   codexBinOverride: 'codex.bin_override',
-  /** skill 扫描目录自定义路径（覆盖 CODEX_SKILLS_DIR/默认），空=不覆盖 */
-  skillsDirOverride: 'skills.dir_override',
   /** 是否允许 danger-full-access sandbox（默认关，'true' 为开） */
   allowDanger: 'security.allow_danger'
 } as const
@@ -36,7 +34,6 @@ export const SETTINGS_DEFAULTS: Record<SettingsKey, string> = {
   [SETTINGS_KEYS.genEffort]: '',
   [SETTINGS_KEYS.genSandbox]: 'workspace-write',
   [SETTINGS_KEYS.codexBinOverride]: '',
-  [SETTINGS_KEYS.skillsDirOverride]: '',
   [SETTINGS_KEYS.allowDanger]: 'false'
 }
 

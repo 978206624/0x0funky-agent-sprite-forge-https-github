@@ -243,10 +243,10 @@ export interface ExportResult {
 }
 
 // ============================================================
-// Skill 扫描（Phase 3：skill 库 + 状态条第三灯）
+// Skill 库（app 自管库：内置 + 导入/新建；状态条第三灯）
 // ============================================================
 
-/** 扫描到的 skill 元信息（来自 <skills>/<id>/SKILL.md 的 frontmatter）。 */
+/** 受管 skill 元信息（来自 app 自管库 userData/skills/<id>/SKILL.md 的 frontmatter）。 */
 export interface SkillInfo {
   /** skill 目录名（唯一 id），如 generate2dsprite */
   id: string
@@ -254,21 +254,19 @@ export interface SkillInfo {
   name: string
   /** SKILL.md frontmatter 的 description；无则 null */
   description: string | null
-  /** 是否已被本应用适配（首版仅 generate2dsprite 点亮可选，其余 detected 但未适配灰显） */
+  /** 是否已被本应用适配（首版仅 generate2dsprite 点亮可选，其余列出但未适配灰显） */
   adapted: boolean
-  /** skill 目录绝对路径 */
+  /** 是否内置 skill（不可删除；首版仅 generate2dsprite） */
+  builtin: boolean
+  /** skill 在自管库中的目录绝对路径（userData/skills/<id>） */
   dir: string
 }
 
-/** skill 目录扫描结果。 */
-export interface SkillScanResult {
-  /** 扫描根目录绝对路径（默认 ~/.codex/skills，可由 CODEX_SKILLS_DIR 覆盖） */
-  root: string
-  /** 根目录是否存在且可读 */
-  rootExists: boolean
-  /** 识别到的 skill（adapted 优先，其余按名排序） */
+/** skill 库列表结果（读取 app 自管库 userData/skills/）。 */
+export interface SkillListResult {
+  /** 识别到的受管 skill（builtin 优先 → adapted → 名称序） */
   skills: SkillInfo[]
-  /** 扫描错误（根目录不存在/不可读等）；无则 null */
+  /** 读取错误（库根不可读等）；无则 null */
   error: string | null
 }
 
