@@ -2,10 +2,10 @@ import type { CodexHealth } from '@shared/types'
 import { StatusLight, type LightStatus } from '../ui/status-light'
 import { useProjectStore } from '../../store/project-store'
 import { useGenerationStore } from '../../store/generation-store'
-import { useHistoryStore } from '../../store/history-store'
-import { useParamStore } from '../../store/param-store'
 import { useChatStore } from '../../store/chat-store'
 import { useSkillStore } from '../../store/skill-store'
+import { useSettingsStore } from '../../store/settings-store'
+import { leaveProject } from '../../lib/leave-project'
 
 /** 目标 skill：状态条第三灯以它是否被扫描到且已适配为准。 */
 const TARGET_SKILL = 'generate2dsprite'
@@ -17,26 +17,11 @@ interface StatusBarProps {
 
 export function StatusBar({ health, loading }: StatusBarProps) {
   const current = useProjectStore((s) => s.current)
-  const setCurrent = useProjectStore((s) => s.setCurrent)
+  const openSettings = useSettingsStore((s) => s.openSettings)
   // 生成或对话进行中禁止切换项目：否则 codex 仍跑在旧项目、产物落旧目录，UI 却已切走。
   const generating = useGenerationStore((s) => s.status === 'running')
   const chatSending = useChatStore((s) => s.sending)
   const busy = generating || chatSending
-
-  const switchProject = async (): Promise<void> => {
-    try {
-      await window.api.projects.setCurrent(null)
-    } catch {
-      // 主进程在 busy 时拒绝切项目（renderer 守卫因刷新/HMR 失效时的兜底）：保持当前项目，不复位。
-      return
-    }
-    // 回项目页前清空生成状态 + 历史/选中 + 参数表单 + 对话，保持项目隔离，下个项目不带旧状态。
-    useGenerationStore.getState().reset()
-    useHistoryStore.getState().reset()
-    useParamStore.getState().reset()
-    useChatStore.getState().reset()
-    setCurrent(null)
-  }
 
   const installedStatus: LightStatus = loading ? 'muted' : health?.installed ? 'success' : 'error'
   const installedLabel = loading
@@ -70,18 +55,24 @@ export function StatusBar({ health, loading }: StatusBarProps) {
 
   return (
     <footer className="flex h-[30px] shrink-0 items-center justify-between border-t border-edge bg-panel px-3">
-      <div className="flex items-center gap-2">
+      {/* 状态灯整组可点 → 打开设置页（任一为红时引导用户去对应修复，面向外部用户的防呆）。 */}
+      <button
+        type="button"
+        onClick={openSettings}
+        title="打开设置"
+        className="flex items-center gap-2 rounded-sm px-1 py-0.5 transition-colors hover:bg-hover"
+      >
         <StatusLight status={installedStatus} label={installedLabel} />
         <StatusLight status={loginStatus} label={loginLabel} />
         <StatusLight status={skillStatus} label={skillLabel} />
-      </div>
+      </button>
       {current ? (
         <div className="flex min-w-0 items-center gap-2">
           <span className="shrink-0 text-[11px] font-medium text-fg-soft">{current.name}</span>
           <span className="truncate font-mono text-[11px] text-fg-dim">{current.absPath}</span>
           <button
             type="button"
-            onClick={() => void switchProject()}
+            onClick={() => void leaveProject()}
             disabled={busy}
             title={busy ? '生成或对话进行中，请先取消或等待完成' : undefined}
             className="shrink-0 rounded-sm px-1.5 py-0.5 text-[11px] text-fg-dim transition-colors hover:bg-hover hover:text-fg disabled:pointer-events-none disabled:opacity-40"

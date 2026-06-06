@@ -57,8 +57,9 @@ export const useHistoryStore = create<HistoryState>((set, get) => ({
     await get().load(record.projectId)
     // await 后项目可能已切换：再次校验，避免把旧项目记录灌进新项目预览。
     if (!stillCurrent(record.projectId)) return
-    // 成功才自动选中预览；失败/取消只刷新列表（带红角标），不抢占当前预览。
-    if (record.status === 'success') set({ selected: record })
+    // 成功→选中进预览；失败→也选中（中栏据 selected 显错误态 + raw-sheet + 重生）；
+    // 取消→不抢占，保留当前选中。中栏视图以 selected 为单一事实源。
+    if (record.status === 'success' || record.status === 'failed') set({ selected: record })
   },
 
   reset: () => {

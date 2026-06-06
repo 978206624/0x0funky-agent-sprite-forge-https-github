@@ -2,6 +2,8 @@ import { Download, Loader2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import type { CodexHealth } from '@shared/types'
 import { CodexNotReady } from '../states/codex-not-ready'
+import { EmptyState } from '../states/empty-state'
+import { ErrorState } from '../states/error-state'
 import { PreviewStage, type PreviewView } from '../center/preview-stage'
 import { PlaybackBar } from '../center/playback-bar'
 import { SegmentedControl } from '../ui/segmented-control'
@@ -146,20 +148,27 @@ export function CenterPanel({ ready, health, loading, onRetry }: CenterPanelProp
         </div>
       </div>
 
-      <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6">
-        {preview ? (
-          <>
-            <PreviewStage preview={preview} view={view} frameIndex={pb.frame} />
-            {view === 'frame' && <PlaybackBar pb={pb} frameCount={preview.frameCount} />}
-          </>
-        ) : (
+      {/*
+        中栏主区以 selected（单一事实源）驱动，生成中优先显进度占位：
+        生成中→进行中占位；选中失败记录→错误态；选中成功记录→预览；否则→空态引导。
+        失败记录由 history-store.onDone 自动选中，故失败即显错误态；点其它历史卡可切走，不霸屏。
+      */}
+      {running ? (
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6">
           <div className="checker-bg flex h-[480px] w-[672px] items-center justify-center rounded-md border border-edge-strong">
-            <span className="text-sm text-fg-dim">
-              {running ? '生成中…' : '尚无产出 · 生成成功后在此预览'}
-            </span>
+            <span className="text-sm text-fg-dim">生成中…</span>
           </div>
-        )}
-      </div>
+        </div>
+      ) : selected?.status === 'failed' ? (
+        <ErrorState />
+      ) : preview ? (
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6">
+          <PreviewStage preview={preview} view={view} frameIndex={pb.frame} />
+          {view === 'frame' && <PlaybackBar pb={pb} frameCount={preview.frameCount} />}
+        </div>
+      ) : (
+        <EmptyState />
+      )}
 
       <div className="flex h-[148px] shrink-0 flex-col border-t border-edge bg-panel">
         {/* 生成中：顶部琥珀进度条（codex 无百分比，用 indeterminate 脉冲，诚实表达进行中）。 */}

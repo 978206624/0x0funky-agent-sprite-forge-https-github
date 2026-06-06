@@ -5,6 +5,7 @@ import { RightPanel } from './components/layout/right-panel'
 import { StatusBar } from './components/layout/status-bar'
 import { TopBar } from './components/layout/top-bar'
 import { ProjectPicker } from './components/project/project-picker'
+import { SettingsPage } from './components/settings/settings-page'
 import { useCodexHealth } from './hooks/use-codex-health'
 import { useGenerationSubscription } from './hooks/use-generation'
 import { useChatSubscription } from './hooks/use-chat'
@@ -48,6 +49,8 @@ export default function App() {
         <RightPanel ready={ready} />
       </div>
       <StatusBar health={health} loading={loading} />
+      {/* 设置页覆盖层：在工作台之后渲染、不卸载工作台（生成/对话进行中打开不中断）。 */}
+      <SettingsPage />
     </div>
   )
 }

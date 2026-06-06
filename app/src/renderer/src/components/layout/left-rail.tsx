@@ -2,6 +2,7 @@ import { Layers, Settings, Sparkles } from 'lucide-react'
 import { SectionHeader } from '../ui/section-header'
 import { HistoryGrid } from '../left/history-grid'
 import { useSkills } from '../../hooks/use-skills'
+import { useSettingsStore } from '../../store/settings-store'
 
 interface SkillItemProps {
   label: string
@@ -66,6 +67,7 @@ function SkillLibrary() {
 }
 
 export function LeftRail() {
+  const openSettings = useSettingsStore((s) => s.openSettings)
   return (
     <aside className="flex w-60 shrink-0 flex-col gap-5 border-r border-edge bg-panel p-3">
       <section className="flex shrink-0 flex-col gap-2">
@@ -85,6 +87,7 @@ export function LeftRail() {
 
       <button
         type="button"
+        onClick={openSettings}
         className="flex items-center gap-2 rounded-sm px-3 py-2 text-left hover:bg-hover"
       >
         <Settings className="h-4 w-4 text-fg-soft" />
