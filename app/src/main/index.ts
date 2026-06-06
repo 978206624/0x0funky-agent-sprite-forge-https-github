@@ -4,7 +4,11 @@ import { registerCodexIpc } from './ipc/codex'
 import { registerDbIpc } from './ipc/db'
 import { registerProjectsIpc } from './ipc/projects'
 import { registerGenerationIpc } from './ipc/generation'
+import { registerAssetSchemePrivileges, registerAssetProtocol } from './protocol/asset'
 import { initDatabase, closeDatabase } from './db'
+
+// asset:// scheme 权限必须在 app ready 之前注册。
+registerAssetSchemePrivileges()
 
 // 仅放行本地 dev server（http/https + localhost）。返回解析后的 URL，非法则 null。
 function parseLocalDevUrl(raw: string | undefined): URL | null {
@@ -70,6 +74,7 @@ function createWindow(): void {
 
 app.whenReady().then(() => {
   initDatabase()
+  registerAssetProtocol()
   registerCodexIpc()
   registerDbIpc()
   registerProjectsIpc()

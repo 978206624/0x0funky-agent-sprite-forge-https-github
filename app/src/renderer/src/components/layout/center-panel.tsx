@@ -2,10 +2,12 @@ import { Download, Loader2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import type { CodexHealth } from '@shared/types'
 import { CodexNotReady } from '../states/codex-not-ready'
+import { PreviewStage, type PreviewView } from '../center/preview-stage'
+import { PlaybackBar } from '../center/playback-bar'
 import { SegmentedControl } from '../ui/segmented-control'
 import { useGenerationStore, type GenStatus, type LogTone } from '../../store/generation-store'
-
-type PreviewView = 'sheet' | 'frame' | 'gif'
+import { usePreview } from '../../hooks/use-preview'
+import { usePlayback } from '../../hooks/use-playback'
 
 const VIEW_OPTIONS = [
   { value: 'sheet' as const, label: '精灵表' },
@@ -50,6 +52,8 @@ export function CenterPanel({ ready, health, loading, onRetry }: CenterPanelProp
   const slug = useGenerationStore((s) => s.slug)
   const running = status === 'running'
   const badge = statusBadge(status)
+  const preview = usePreview()
+  const pb = usePlayback(preview?.frameCount ?? 0, view === 'frame')
 
   // 新日志自动滚到底。
   const logEndRef = useRef<HTMLDivElement>(null)
@@ -69,8 +73,13 @@ export function CenterPanel({ ready, health, loading, onRetry }: CenterPanelProp
     <main className="flex flex-1 flex-col bg-base">
       <div className="flex h-12 shrink-0 items-center justify-between border-b border-edge px-4">
         <div className="flex items-center gap-3">
-          <span className="text-sm font-semibold text-fg">{slug ?? '尚未生成'}</span>
+          <span className="text-sm font-semibold text-fg">{preview?.slug ?? slug ?? '尚未生成'}</span>
           {running && <Loader2 className="h-4 w-4 animate-spin text-accent" />}
+          {preview && (
+            <span className="font-mono text-xs text-fg-dim">
+              {preview.frameCount} 帧 · {preview.cell}px · {preview.rows}×{preview.cols}
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-3">
           <SegmentedControl options={VIEW_OPTIONS} value={view} onChange={setView} />
@@ -86,12 +95,19 @@ export function CenterPanel({ ready, health, loading, onRetry }: CenterPanelProp
         </div>
       </div>
 
-      <div className="flex flex-1 items-center justify-center p-6">
-        <div className="checker-bg flex h-[480px] w-[672px] items-center justify-center rounded-md border border-edge-strong">
-          <span className="text-sm text-fg-dim">
-            {running ? '生成中…' : '预览区 · Phase 7 接通'}
-          </span>
-        </div>
+      <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6">
+        {preview ? (
+          <>
+            <PreviewStage preview={preview} view={view} frameIndex={pb.frame} />
+            {view === 'frame' && <PlaybackBar pb={pb} frameCount={preview.frameCount} />}
+          </>
+        ) : (
+          <div className="checker-bg flex h-[480px] w-[672px] items-center justify-center rounded-md border border-edge-strong">
+            <span className="text-sm text-fg-dim">
+              {running ? '生成中…' : '尚无产出 · 生成成功后在此预览'}
+            </span>
+          </div>
+        )}
       </div>
 
       <div className="flex h-[148px] shrink-0 flex-col border-t border-edge bg-panel">

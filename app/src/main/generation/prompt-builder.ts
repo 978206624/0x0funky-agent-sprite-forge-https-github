@@ -27,6 +27,12 @@ export function frameCount(params: GenParams): number {
   return rows * cols
 }
 
+/** cell_size 正整数兜底：非 UI 调用方传小数/0/负/NaN 时回退 256。 */
+export function resolveCell(params: GenParams): number {
+  const n = Math.floor(params.frameWidth ?? NaN)
+  return Number.isFinite(n) && n > 0 ? n : 256
+}
+
 export interface SpritePromptInput {
   /** 产出 slug，决定落盘目录与帧文件名前缀。 */
   slug: string
@@ -50,7 +56,7 @@ export function buildSpritePrompt(input: SpritePromptInput): string {
   const { slug, params } = input
   const { rows, cols } = resolveGrid(params)
   const frames = rows * cols
-  const cell = params.frameWidth ?? 256
+  const cell = resolveCell(params)
   const outDir = `assets/sprites/${slug}`
 
   const assetType = params.assetType ?? 'character'

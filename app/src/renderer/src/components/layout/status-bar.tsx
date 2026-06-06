@@ -1,6 +1,7 @@
 import type { CodexHealth } from '@shared/types'
 import { StatusLight, type LightStatus } from '../ui/status-light'
 import { useProjectStore } from '../../store/project-store'
+import { useGenerationStore } from '../../store/generation-store'
 
 interface StatusBarProps {
   health: CodexHealth | null
@@ -10,6 +11,8 @@ interface StatusBarProps {
 export function StatusBar({ health, loading }: StatusBarProps) {
   const current = useProjectStore((s) => s.current)
   const setCurrent = useProjectStore((s) => s.setCurrent)
+  // 生成进行中禁止切换项目：否则 generation-store 仍显旧项目状态、产物落到旧目录。
+  const generating = useGenerationStore((s) => s.status === 'running')
 
   const switchProject = async (): Promise<void> => {
     await window.api.projects.setCurrent(null)
@@ -48,7 +51,9 @@ export function StatusBar({ health, loading }: StatusBarProps) {
           <button
             type="button"
             onClick={() => void switchProject()}
-            className="shrink-0 rounded-sm px-1.5 py-0.5 text-[11px] text-fg-dim transition-colors hover:bg-hover hover:text-fg"
+            disabled={generating}
+            title={generating ? '生成进行中，请先取消或等待完成' : undefined}
+            className="shrink-0 rounded-sm px-1.5 py-0.5 text-[11px] text-fg-dim transition-colors hover:bg-hover hover:text-fg disabled:pointer-events-none disabled:opacity-40"
           >
             切换项目
           </button>
