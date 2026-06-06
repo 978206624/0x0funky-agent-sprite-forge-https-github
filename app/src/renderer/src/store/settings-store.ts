@@ -2,9 +2,14 @@ import { create } from 'zustand'
 import type { AppSettings } from '@shared/types'
 import { SETTINGS_KEYS, SETTINGS_DEFAULTS, type SettingsKey } from '@shared/settings-keys'
 
+/** 设置页 tab（左侧导航）。 */
+export type SettingsTab = 'project' | 'codex' | 'skill' | 'generation' | 'storage' | 'security'
+
 interface SettingsState {
   /** 设置页覆盖层是否打开。 */
   open: boolean
+  /** 当前激活的 tab。 */
+  activeTab: SettingsTab
   /** 已加载的全部设置（key-value）；未加载为 null。 */
   values: AppSettings | null
   loading: boolean
@@ -15,7 +20,9 @@ interface SettingsState {
   get: (key: SettingsKey) => string
   /** 写单个设置：乐观更新 + 持久化到 settings 表。 */
   set: (key: SettingsKey, value: string) => Promise<void>
-  openSettings: () => void
+  /** 打开设置页；可指定直达的 tab（状态条红灯/引导用）。 */
+  openSettings: (tab?: SettingsTab) => void
+  setTab: (tab: SettingsTab) => void
   close: () => void
 }
 
@@ -25,6 +32,7 @@ interface SettingsState {
  */
 export const useSettingsStore = create<SettingsState>((set, get) => ({
   open: false,
+  activeTab: 'project',
   values: null,
   loading: false,
 
@@ -59,10 +67,11 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     }
   },
 
-  openSettings: () => {
+  openSettings: (tab) => {
     void get().load()
-    set({ open: true })
+    set({ open: true, ...(tab ? { activeTab: tab } : {}) })
   },
+  setTab: (tab) => set({ activeTab: tab }),
   close: () => set({ open: false })
 }))
 

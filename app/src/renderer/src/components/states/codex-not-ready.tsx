@@ -8,7 +8,8 @@ interface CodexNotReadyProps {
 }
 
 export function CodexNotReady({ health, onRetry }: CodexNotReadyProps) {
-  const openSettings = useSettingsStore((s) => s.openSettings)
+  // 直达 codex tab：未就绪时用户最需要的就是看/改 codex 路径与登录。
+  const openCodexTab = useSettingsStore((s) => s.openSettings)
   const notInstalled = !health?.installed
   const steps = [
     { label: '检测 Codex 可执行文件', done: !!health?.installed },
@@ -57,7 +58,7 @@ export function CodexNotReady({ health, onRetry }: CodexNotReadyProps) {
         </button>
         <button
           type="button"
-          onClick={openSettings}
+          onClick={() => openCodexTab('codex')}
           className="inline-flex items-center gap-2 rounded-md bg-accent px-3.5 py-2 text-sm font-medium text-white hover:bg-accent-hover"
         >
           <Settings className="h-4 w-4" />

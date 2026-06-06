@@ -53,19 +53,35 @@ export function StatusBar({ health, loading }: StatusBarProps) {
       ? `${TARGET_SKILL} 已挂载`
       : 'skill 未挂载'
 
+  /**
+   * 单灯点击 → 打开设置并直达对应 tab（任一为红时引导用户去对应修复）。
+   * 安装/登录灯（codex 类）→ codex tab；skill 灯 → skill tab。
+   * 三灯间隙点击 → 默认打开设置（project tab，行为同左栏「设置」入口）。
+   */
+  const openForCodex = (): void => openSettings('codex')
+  const openForSkill = (): void => openSettings('skill')
+
   return (
     <footer className="flex h-[30px] shrink-0 items-center justify-between border-t border-edge bg-panel px-3">
-      {/* 状态灯整组可点 → 打开设置页（任一为红时引导用户去对应修复，面向外部用户的防呆）。 */}
-      <button
-        type="button"
-        onClick={openSettings}
-        title="打开设置"
-        className="flex items-center gap-2 rounded-sm px-1 py-0.5 transition-colors hover:bg-hover"
-      >
-        <StatusLight status={installedStatus} label={installedLabel} />
-        <StatusLight status={loginStatus} label={loginLabel} />
-        <StatusLight status={skillStatus} label={skillLabel} />
-      </button>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={openForCodex}
+          title="设置 → Codex"
+          className="flex items-center gap-2 rounded-sm px-1 py-0.5 transition-colors hover:bg-hover"
+        >
+          <StatusLight status={installedStatus} label={installedLabel} />
+          <StatusLight status={loginStatus} label={loginLabel} />
+        </button>
+        <button
+          type="button"
+          onClick={openForSkill}
+          title="设置 → Skill"
+          className="flex items-center gap-2 rounded-sm px-1 py-0.5 transition-colors hover:bg-hover"
+        >
+          <StatusLight status={skillStatus} label={skillLabel} />
+        </button>
+      </div>
       {current ? (
         <div className="flex min-w-0 items-center gap-2">
           <span className="shrink-0 text-[11px] font-medium text-fg-soft">{current.name}</span>
