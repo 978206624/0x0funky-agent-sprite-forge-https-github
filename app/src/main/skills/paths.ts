@@ -1,5 +1,5 @@
 import { app } from 'electron'
-import { join } from 'path'
+import { join, resolve, sep } from 'path'
 
 /**
  * skill 相关路径解析单一事实源（主进程）。三类目录集中此处，避免散落：
@@ -21,6 +21,26 @@ export type BuiltinSkillId = (typeof BUILTIN_SKILL_IDS)[number]
 /** 判定某 id 是否内置 skill。 */
 export function isBuiltinSkill(id: string): boolean {
   return (BUILTIN_SKILL_IDS as readonly string[]).includes(id)
+}
+
+/** 合法 skill id 字符集：与 sanitizeId 产出同口径（小写/数字/`-`/`_`，大小写放行以容旧目录）。 */
+const SKILL_ID_RE = /^[A-Za-z0-9_-]+$/
+
+/**
+ * 校验来自 renderer / 会话的 skill id 为不可信输入：必须是单段安全名，
+ * 且 resolve 后仍落在自管库根之内（双保险防 `..` / 分隔符 / 越界）。
+ * 所有以 id 拼接库内/项目内路径的入口（delete/list/read/write/sync/cleanup）必须先调用。
+ * 非法即抛错，杜绝 `deleteSkill('..')` 删到库根/userData 之类的路径穿越。
+ */
+export function assertValidSkillId(id: string): void {
+  if (typeof id !== 'string' || !SKILL_ID_RE.test(id) || id === '.' || id === '..') {
+    throw new Error(`非法 skill id：${String(id)}`)
+  }
+  const root = resolve(skillLibraryRoot())
+  const target = resolve(librarySkillDir(id))
+  if (target === root || !target.startsWith(root + sep)) {
+    throw new Error(`非法 skill id（越界）：${id}`)
+  }
 }
 
 /**

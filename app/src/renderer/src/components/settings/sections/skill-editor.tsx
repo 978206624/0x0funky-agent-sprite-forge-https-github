@@ -6,25 +6,41 @@ import { Button } from '../../ui/button'
 interface SkillEditorProps {
   skillId: string
   onClose: () => void
+  /** 上报当前是否有未保存改动，供父组件在切换编辑目标前拦截（M4 防丢）。 */
+  onDirtyChange?: (dirty: boolean) => void
 }
 
 /**
  * skill 内容编辑器：列出该 skill 目录内可编辑文件（默认 SKILL.md），读入 TextArea 编辑、保存写回。
  * 首版聚焦文本编辑，不做语法高亮 / 多文件树。
  */
-export function SkillEditor({ skillId, onClose }: SkillEditorProps) {
+export function SkillEditor({ skillId, onClose, onDirtyChange }: SkillEditorProps) {
   const [files, setFiles] = useState<string[]>([])
-  const [file, setFile] = useState<string>('SKILL.md')
+  const [file, setFile] = useState<string>('')
   const [content, setContent] = useState('')
+  // 已落盘内容基线：dirty 判定 = content !== savedContent。
+  const [savedContent, setSavedContent] = useState('')
   const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // 切 skill：拉文件清单，默认选 SKILL.md（无则首个）。
+  const dirty = content !== savedContent
+
+  // 上报 dirty 给父组件（用于拦截"点另一个 skill 的编辑按钮"绕过确认的丢失）。
+  useEffect(() => {
+    onDirtyChange?.(dirty)
+  }, [dirty, onDirtyChange])
+
+  // 切 skill：先清空 file/content（消除「新 skillId + 旧 file」的读取竞态 M3），
+  // 再拉文件清单并选定默认 SKILL.md（无则首个）。
   useEffect(() => {
     let alive = true
     setLoading(true)
     setError(null)
+    setFile('')
+    setContent('')
+    setSavedContent('')
     void window.api.skills
       .listFiles(skillId)
       .then((fs) => {
@@ -39,10 +55,11 @@ export function SkillEditor({ skillId, onClose }: SkillEditorProps) {
     }
   }, [skillId])
 
-  // 切文件：读内容。
+  // 切文件：读内容并设为基线（file 为空时不读，避免竞态）。
   useEffect(() => {
     if (!file) {
       setContent('')
+      setSavedContent('')
       return
     }
     let alive = true
@@ -50,22 +67,43 @@ export function SkillEditor({ skillId, onClose }: SkillEditorProps) {
     setError(null)
     void window.api.skills
       .readFile(skillId, file)
-      .then((c) => alive && setContent(c))
+      .then((c) => {
+        if (!alive) return
+        setContent(c)
+        setSavedContent(c)
+      })
       .catch((e) => alive && setError(`读取文件失败：${String(e)}`))
     return () => {
       alive = false
     }
   }, [skillId, file])
 
+  // 切文件前若有未保存改动，二次确认（M4 防丢）。
+  const onSelectFile = (next: string): void => {
+    if (next === file) return
+    if (dirty && !window.confirm('当前文件有未保存的修改，切换将丢失。确定继续？')) return
+    setFile(next)
+  }
+
+  // 关闭前若有未保存改动，二次确认（M4 防丢）。
+  const onCloseGuarded = (): void => {
+    if (dirty && !window.confirm('有未保存的修改，关闭将丢失。确定关闭？')) return
+    onClose()
+  }
+
   const save = (): void => {
+    if (saving || !file) return // 防连点（m3）
     setError(null)
+    setSaving(true)
     void window.api.skills
       .writeFile(skillId, file, content)
       .then(() => {
+        setSavedContent(content) // 保存成功 → 更新基线，dirty 归零
         setSaved(true)
         window.setTimeout(() => setSaved(false), 2000)
       })
       .catch((e) => setError(`保存失败：${String(e)}`))
+      .finally(() => setSaving(false))
   }
 
   return (
@@ -76,7 +114,7 @@ export function SkillEditor({ skillId, onClose }: SkillEditorProps) {
           {files.length > 0 && (
             <select
               value={file}
-              onChange={(e) => setFile(e.target.value)}
+              onChange={(e) => onSelectFile(e.target.value)}
               className="max-w-[200px] truncate rounded-sm border border-edge bg-panel px-2 py-1 text-[11px] text-fg-soft outline-none focus:border-accent"
             >
               {files.map((f) => (
@@ -86,10 +124,11 @@ export function SkillEditor({ skillId, onClose }: SkillEditorProps) {
               ))}
             </select>
           )}
+          {dirty && <span className="shrink-0 text-[11px] text-fg-dim">● 未保存</span>}
         </div>
         <button
           type="button"
-          onClick={onClose}
+          onClick={onCloseGuarded}
           title="关闭编辑器"
           className="rounded-sm p-1 text-fg-dim hover:bg-hover hover:text-fg"
         >
@@ -108,8 +147,8 @@ export function SkillEditor({ skillId, onClose }: SkillEditorProps) {
       />
 
       <div className="flex items-center gap-3">
-        <Button variant="primary" onClick={save} disabled={loading || !file}>
-          保存
+        <Button variant="primary" onClick={save} disabled={loading || saving || !file || !dirty}>
+          {saving ? '保存中…' : '保存'}
         </Button>
         {saved && <span className="text-[11px] text-success">已保存</span>}
       </div>

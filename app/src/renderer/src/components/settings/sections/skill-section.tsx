@@ -26,10 +26,29 @@ export function SkillSection() {
 
   const [newName, setNewName] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [editorDirty, setEditorDirty] = useState(false)
 
   useEffect(() => {
     if (!result) void list()
   }, [result, list])
+
+  // 打开/切换编辑目标：若当前编辑有未保存改动且切到别的 skill，先确认（M4 防丢，跨组件拦截）。
+  const openEditor = (id: string): void => {
+    if (
+      editingId &&
+      editingId !== id &&
+      editorDirty &&
+      !window.confirm('当前编辑有未保存的修改，切换将丢失。确定继续？')
+    ) {
+      return
+    }
+    setEditingId(id)
+  }
+
+  const closeEditor = (): void => {
+    setEditingId(null)
+    setEditorDirty(false)
+  }
 
   const onCreate = (): void => {
     const name = newName.trim()
@@ -104,7 +123,7 @@ export function SkillSection() {
                   </span>
                   <button
                     type="button"
-                    onClick={() => setEditingId(s.id)}
+                    onClick={() => openEditor(s.id)}
                     title="编辑 SKILL.md"
                     className="rounded-sm p-1 text-fg-dim hover:bg-hover hover:text-fg"
                   >
@@ -115,7 +134,7 @@ export function SkillSection() {
                       tone="danger"
                       confirmLabel="删除?"
                       onConfirm={() => {
-                        if (editingId === s.id) setEditingId(null)
+                        if (editingId === s.id) closeEditor()
                         void remove(s.id)
                       }}
                     >
@@ -129,7 +148,9 @@ export function SkillSection() {
         )}
       </div>
 
-      {editingId && <SkillEditor skillId={editingId} onClose={() => setEditingId(null)} />}
+      {editingId && (
+        <SkillEditor skillId={editingId} onClose={closeEditor} onDirtyChange={setEditorDirty} />
+      )}
     </SettingSection>
   )
 }

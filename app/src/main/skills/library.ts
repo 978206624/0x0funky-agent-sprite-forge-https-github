@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, cpSync, readdirSync, readFileSync, statSync } from 'fs'
+import { existsSync, mkdirSync, cpSync, readdirSync, readFileSync, statSync, lstatSync } from 'fs'
 import { join } from 'path'
 import type { SkillInfo, SkillListResult } from '../../shared/types'
 import {
@@ -69,12 +69,15 @@ function parseFrontmatter(md: string): { name?: string; description?: string } {
   return out
 }
 
-/** 读取单个 skill 目录的 SKILL.md 并构造 SkillInfo；无 SKILL.md / 读取失败返回 null（跳过）。 */
+/** 读取单个 skill 目录的 SKILL.md 并构造 SkillInfo；无 SKILL.md / 非常规文件 / 读取失败返回 null（跳过）。 */
 function readSkill(root: string, id: string): SkillInfo | null {
   const dir = join(root, id)
+  const skillMd = join(dir, 'SKILL.md')
   let md: string
   try {
-    md = readFileSync(join(dir, 'SKILL.md'), 'utf8')
+    // lstat 防跟随：SKILL.md 必须是常规文件，挡 symlink 指向库外（导入侧已拒 symlink，此处兜底）。
+    if (!lstatSync(skillMd).isFile()) return null
+    md = readFileSync(skillMd, 'utf8')
   } catch {
     // 无 SKILL.md 的目录不是有效 skill，跳过。
     return null

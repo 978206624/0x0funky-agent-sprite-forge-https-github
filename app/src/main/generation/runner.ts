@@ -79,6 +79,7 @@ export function runGeneration(input: RunGenerationInput): RunGenerationHandle {
     syncSkillToProject(SKILL, input.projectDir)
   } catch (err) {
     input.onStderr?.(`同步 skill 失败：${String(err)}\n`)
+    cleanupSkillInProject(SKILL, input.projectDir) // 清掉同步中途失败可能留下的半拷贝
     return { generationId: record.id, slug, cancel: () => {}, done: Promise.resolve(markFailed()) }
   }
 

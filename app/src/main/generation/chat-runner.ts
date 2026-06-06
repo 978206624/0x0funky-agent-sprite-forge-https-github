@@ -182,6 +182,7 @@ export function runChatTurn(input: RunChatTurnInput): RunChatTurnHandle {
     syncSkillToProject(skill, input.projectDir)
   } catch (err) {
     input.onStderr?.(`同步 skill 失败：${String(err)}\n`)
+    cleanupSkillInProject(skill, input.projectDir) // 清掉同步中途失败可能留下的半拷贝
     return { cancel: () => {}, done: Promise.resolve(finalize(null)) }
   }
 
