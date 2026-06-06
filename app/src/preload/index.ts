@@ -8,7 +8,8 @@ import type {
   GenerationInput,
   GenerationUpdate,
   AppSettings,
-  ExportResult
+  ExportResult,
+  SkillScanResult
 } from '../shared/types'
 
 /** 订阅一个 ipc 频道并返回退订函数（renderer 卸载/刷新时清理监听）。 */
@@ -71,6 +72,12 @@ const api = {
     /** 导出某条产出的整套 bundle 到用户选定目录；返回 null 表示用户取消。 */
     bundle: (generationId: number): Promise<ExportResult | null> =>
       ipcRenderer.invoke('export:bundle', generationId)
+  },
+  skills: {
+    /** 扫描 skill 目录，返回已安装 skill 列表与元信息。 */
+    scan: (): Promise<SkillScanResult> => ipcRenderer.invoke('skills:scan'),
+    /** 重新扫描 skill 目录（同 scan）。 */
+    rescan: (): Promise<SkillScanResult> => ipcRenderer.invoke('skills:rescan')
   }
 }
 

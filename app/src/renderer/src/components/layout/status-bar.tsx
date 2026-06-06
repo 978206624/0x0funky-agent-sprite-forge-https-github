@@ -4,6 +4,10 @@ import { useProjectStore } from '../../store/project-store'
 import { useGenerationStore } from '../../store/generation-store'
 import { useHistoryStore } from '../../store/history-store'
 import { useParamStore } from '../../store/param-store'
+import { useSkillStore } from '../../store/skill-store'
+
+/** 目标 skill：状态条第三灯以它是否被扫描到且已适配为准。 */
+const TARGET_SKILL = 'generate2dsprite'
 
 interface StatusBarProps {
   health: CodexHealth | null
@@ -43,12 +47,24 @@ export function StatusBar({ health, loading }: StatusBarProps) {
       : '已登录'
     : '未登录'
 
+  // 第三灯：目标 skill 是否已挂载（扫描到且已适配）。
+  // 结果到达前一律 muted（含启动初帧），不依赖 loading 标志，避免初次启动闪红。
+  const skillResult = useSkillStore((s) => s.result)
+  const skillMounted = !!skillResult?.skills.some((s) => s.id === TARGET_SKILL && s.adapted)
+  const skillStatus: LightStatus = !skillResult ? 'muted' : skillMounted ? 'success' : 'error'
+  // 文案精简：成功态去掉冗余 "skill " 前缀，避免长文案在窄窗口挤压右侧项目名。
+  const skillLabel = !skillResult
+    ? 'skill 扫描中…'
+    : skillMounted
+      ? `${TARGET_SKILL} 已挂载`
+      : 'skill 未挂载'
+
   return (
     <footer className="flex h-[30px] shrink-0 items-center justify-between border-t border-edge bg-panel px-3">
       <div className="flex items-center gap-2">
         <StatusLight status={installedStatus} label={installedLabel} />
         <StatusLight status={loginStatus} label={loginLabel} />
-        <StatusLight status="muted" label="skill 待扫描" />
+        <StatusLight status={skillStatus} label={skillLabel} />
       </div>
       {current ? (
         <div className="flex min-w-0 items-center gap-2">

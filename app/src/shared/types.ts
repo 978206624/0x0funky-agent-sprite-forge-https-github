@@ -146,6 +146,36 @@ export interface ExportResult {
 }
 
 // ============================================================
+// Skill 扫描（Phase 3：skill 库 + 状态条第三灯）
+// ============================================================
+
+/** 扫描到的 skill 元信息（来自 <skills>/<id>/SKILL.md 的 frontmatter）。 */
+export interface SkillInfo {
+  /** skill 目录名（唯一 id），如 generate2dsprite */
+  id: string
+  /** SKILL.md frontmatter 的 name；缺省回退目录名 */
+  name: string
+  /** SKILL.md frontmatter 的 description；无则 null */
+  description: string | null
+  /** 是否已被本应用适配（首版仅 generate2dsprite 点亮可选，其余 detected 但未适配灰显） */
+  adapted: boolean
+  /** skill 目录绝对路径 */
+  dir: string
+}
+
+/** skill 目录扫描结果。 */
+export interface SkillScanResult {
+  /** 扫描根目录绝对路径（默认 ~/.codex/skills，可由 CODEX_SKILLS_DIR 覆盖） */
+  root: string
+  /** 根目录是否存在且可读 */
+  rootExists: boolean
+  /** 识别到的 skill（adapted 优先，其余按名排序） */
+  skills: SkillInfo[]
+  /** 扫描错误（根目录不存在/不可读等）；无则 null */
+  error: string | null
+}
+
+// ============================================================
 // codex exec --json 事件流（Phase 6：生成执行）
 // 真实格式由探针实测（见 .tk-meeting 探针 jsonl）：每行一个 JSON，顶层 `type` 判别，
 // item.* 事件再由 `item.type` 二级判别。已知变体显式建模；未知类型由解析器归一为

@@ -7,7 +7,8 @@ import type {
   GenerationInput,
   GenerationUpdate,
   AppSettings,
-  ExportResult
+  ExportResult,
+  SkillScanResult
 } from '../shared/types'
 
 export interface ForgeApi {
@@ -62,7 +63,13 @@ export interface ForgeApi {
     /** 导出某条产出的整套 bundle 到用户选定目录；返回 null 表示用户取消 */
     bundle: (generationId: number) => Promise<ExportResult | null>
   }
-  // 后续 Phase 扩展：skills、chat
+  skills: {
+    /** 扫描 skill 目录，返回已安装 skill 列表与元信息 */
+    scan: () => Promise<SkillScanResult>
+    /** 重新扫描 skill 目录（同 scan） */
+    rescan: () => Promise<SkillScanResult>
+  }
+  // 后续 Phase 扩展：chat
 }
 
 declare global {

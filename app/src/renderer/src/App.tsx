@@ -8,6 +8,7 @@ import { ProjectPicker } from './components/project/project-picker'
 import { useCodexHealth } from './hooks/use-codex-health'
 import { useGenerationSubscription } from './hooks/use-generation'
 import { useProjectStore } from './store/project-store'
+import { useSkillStore } from './store/skill-store'
 
 export default function App() {
   const current = useProjectStore((s) => s.current)
@@ -23,6 +24,11 @@ export default function App() {
   useEffect(() => {
     void hydrate()
   }, [hydrate])
+
+  // 启动时扫描一次 skill 目录（左栏 Skill 库 + 状态条第三灯据此点亮）。
+  useEffect(() => {
+    void useSkillStore.getState().scan()
+  }, [])
 
   // 水合完成前不渲染，避免在恢复当前项目前闪一下项目页。
   if (!hydrated) return null

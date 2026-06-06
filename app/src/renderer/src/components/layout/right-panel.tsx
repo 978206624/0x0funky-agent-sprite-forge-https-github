@@ -8,6 +8,7 @@ import { SectionHeader } from '../ui/section-header'
 import { TextArea } from '../ui/text-input'
 import { useGenerationStore } from '../../store/generation-store'
 import { useParamStore, toParams, type FormState } from '../../store/param-store'
+import { useSkillStore } from '../../store/skill-store'
 
 type RightTab = 'params' | 'chat'
 
@@ -194,6 +195,8 @@ export function RightPanel({ ready }: RightPanelProps) {
   const startGen = useGenerationStore((s) => s.start)
   const cancelGen = useGenerationStore((s) => s.cancel)
   const running = status === 'running'
+  // 当前选中 skill（首版仅 generate2dsprite 可选）；无可用 skill 时徽标显式置空态，不硬编码 id。
+  const currentSkill = useSkillStore((s) => s.currentId)
 
   return (
     <aside className="flex w-80 shrink-0 flex-col border-l border-edge bg-panel">
@@ -216,7 +219,7 @@ export function RightPanel({ ready }: RightPanelProps) {
         </div>
         <div className="flex items-center gap-1 rounded-sm bg-accent-soft px-2 py-1">
           <Sparkles className="h-3 w-3 text-accent" />
-          <span className="font-mono text-[11px] text-accent">generate2dsprite</span>
+          <span className="font-mono text-[11px] text-accent">{currentSkill ?? '无可用 Skill'}</span>
         </div>
       </div>
 
