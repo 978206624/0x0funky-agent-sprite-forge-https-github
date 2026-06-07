@@ -61,6 +61,10 @@ export interface GenParams {
   action?: string
   /** 视角，如 side/topdown/3-4 */
   view?: string
+  /** 角色朝向（单方向时生效）：down=面向镜头 / left=左侧 / right=右侧 / up=背向。省略时按 view 推断 */
+  direction?: string
+  /** 四方向整表：true 时生成 行=朝向(下/左/右/上)、列=该动作帧 的 4 行精灵表（行恒 4，覆盖 gridRows） */
+  multiDir?: boolean
   /** 精灵表网格列数 */
   gridCols?: number
   /** 精灵表网格行数 */

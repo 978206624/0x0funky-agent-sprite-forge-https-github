@@ -18,6 +18,57 @@ export interface SpritePromptInput {
   params: GenParams
 }
 
+/** 单方向朝向 → 自然语言描述（对齐内置 SKILL.md direction 语义）。 */
+const DIRECTION_DESC: Record<string, string> = {
+  down: 'toward the camera (front view)',
+  left: 'to the left (left side profile)',
+  right: 'to the right (right side profile)',
+  up: 'away from the camera (back view)'
+}
+
+/**
+ * 单方向时的朝向约束行。
+ * - 显式 direction → 钉死该朝向，全表一致。
+ * - 无 direction：side 视角默认单一侧面；topdown / 3-4 默认朝下（面向镜头）。
+ * 返回 null 表示不附加（未知 view 且无 direction，交给 skill 自行推断）。
+ */
+function facingLine(view: string, direction: string | undefined): string | null {
+  const dir = direction?.toLowerCase()
+  if (dir && DIRECTION_DESC[dir]) {
+    return `Facing / direction: render the subject facing ${DIRECTION_DESC[dir]} consistently across every frame; do not change facing within the sheet.`
+  }
+  const v = view.toLowerCase()
+  if (v === 'side') return 'Facing: a single consistent side profile across all frames.'
+  if (v === 'topdown' || v === '3-4' || v === '3/4') {
+    return 'Facing: a single consistent down/front facing (toward the camera) across all frames unless otherwise required.'
+  }
+  return null
+}
+
+/** 四方向整表的布局指令块（行=朝向、列=动作帧），对齐 SKILL.md player_sheet 语义。 */
+function multiDirLayoutLines(slug: string, action: string, cols: number, frames: number, cell: number): string[] {
+  return [
+    'Sheet layout (4-direction sheet, must match exactly):',
+    `- grid: 4 rows by ${cols} columns, ${frames} equal cells, read left-to-right top-to-bottom`,
+    '- this is ONE action laid out across four facings, NOT four different actions in the rows',
+    '- row 1 = DOWN (facing toward the camera / front), row 2 = LEFT (left side profile), row 3 = RIGHT (mirror of left), row 4 = UP (back to camera)',
+    `- each row holds the ${cols} frame(s) of the same ${action} action for that facing, in sequence`,
+    '- keep the SAME character identity, SAME body height/scale and SAME on-screen size in every cell; only facing and per-frame pose change',
+    `- cell size: ${cell}px per frame`,
+    `- frame label prefix: ${slug} (frames named ${slug}-1 .. ${slug}-${frames}, row-major: row 1 first)`
+  ]
+}
+
+/** 单方向的布局指令块。 */
+function singleDirLayoutLines(slug: string, rows: number, cols: number, frames: number, cell: number): string[] {
+  return [
+    'Sheet layout (must match exactly):',
+    `- grid: ${rows} rows by ${cols} columns, ${frames} equal cells, read left-to-right top-to-bottom`,
+    `- cell size: ${cell}px per frame`,
+    `- frame label prefix: ${slug} (frames named ${slug}-1 .. ${slug}-${frames})`
+  ]
+}
+
 /** 高级后处理参数行（仅输出用户显式给定的项，未给的留给 skill 自行推断）。 */
 function advancedLines(p: GenParams): string[] {
   const lines: string[] = []
@@ -41,26 +92,31 @@ export function buildSpritePrompt(input: SpritePromptInput): string {
   const assetType = params.assetType ?? 'character'
   const action = params.action ?? 'idle'
   const view = params.view ?? 'side'
+  const multiDir = params.multiDir === true
   const theme = params.theme?.trim() || `a ${assetType} ${action} animation`
 
   const advanced = advancedLines(params)
   const refCount = params.refImages?.length ?? 0
+
+  // 四方向整表用专属布局块（行=朝向）；单方向用普通布局 + 朝向约束行。
+  const layoutLines = multiDir
+    ? multiDirLayoutLines(slug, action, cols, frames, cell)
+    : singleDirLayoutLines(slug, rows, cols, frames, cell)
+  const facing = multiDir ? null : facingLine(view, params.direction)
 
   return [
     'Use the generate2dsprite skill to produce one 2D game sprite animation sheet.',
     '',
     `Subject / theme: ${theme}`,
     `Asset type: ${assetType}. Action: ${action}. View: ${view}.`,
+    ...(facing ? [facing] : []),
     ...(refCount
       ? [
           `Reference images: ${refCount} image(s) are attached to this message. Use them as the primary visual reference for the character's identity, design, color palette and art style; keep the generated sprite faithful to them while still satisfying the layout and constraints below.`
         ]
       : []),
     '',
-    'Sheet layout (must match exactly):',
-    `- grid: ${rows} rows by ${cols} columns, ${frames} equal cells, read left-to-right top-to-bottom`,
-    `- cell size: ${cell}px per frame`,
-    `- frame label prefix: ${slug} (frames named ${slug}-1 .. ${slug}-${frames})`,
+    ...layoutLines,
     '',
     'Hard constraints (do not relax):',
     '- perfectly flat solid #FF00FF chroma-key background, no gradients/shadows/floor',
