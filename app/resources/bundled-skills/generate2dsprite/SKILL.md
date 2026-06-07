@@ -16,6 +16,7 @@ Infer these from the user request:
 - `asset_type`: `player` | `npc` | `creature` | `character` | `spell` | `projectile` | `impact` | `prop` | `summon` | `fx`
 - `action`: `single` | `idle` | `cast` | `attack` | `shoot` | `jump` | `hurt` | `combat` | `walk` | `run` | `hover` | `charge` | `projectile` | `impact` | `explode` | `death`
 - `view`: `topdown` | `side` | `3/4`
+- `direction`: `down` | `left` | `right` | `up` | `all4` — facing for the asset. `down`=toward camera, `left`/`right`=side profile, `up`=back to camera. `all4` requests a 4-direction sheet (see Multi-direction rule). Default: for `side` view a single side facing; for `topdown`/`3/4` a single `down` facing unless the user asks for more.
 - `sheet`: `auto` | `2x2` | `2x3` | `2x4` | `3x3` | `3x4` | `4x4` | `5x5` | `custom_grid` | `strip_1x3` | `strip_1x4`
 - `frames`: `auto` or explicit count
 - `bundle`: `single_asset` | `unit_bundle` | `spell_bundle` | `combat_bundle` | `line_bundle` | `hero_action_bundle` | `engine_atlas`
@@ -129,6 +130,8 @@ Animated body grid guardrail:
 - Use `2x3` for 6-frame body actions such as cast, attack, summon, run, charge, or transformation.
 - Use `2x4`, `3x3`, `3x4`, or `4x4` for longer body actions. Prefer a compact grid over a long row.
 - For 4-direction top-down walk, `4x4` can remain a raw generation shape because it is a canonical directional locomotion sheet, not four unrelated action rows.
+- **Multi-direction rule (generalized)**: a 4-direction sheet with `rows = facing` is a valid raw shape NOT only for `walk` but for any single cyclic/standing action — `idle`, `walk`, `run` (and similar loops). When `direction: all4` (or the user asks for "4-direction / 上下左右 / facing sheet") for such an action, lay out **row 1 = DOWN (toward camera), row 2 = LEFT, row 3 = RIGHT (mirror of left), row 4 = UP (back to camera)**, and **columns = the frames of that same action**. It stays ONE action across four facings — never pack different actions into the rows. Keep the SAME character identity, SAME body height/scale and SAME on-screen size in every cell; only facing and per-frame pose change. Frame count = 4 × (frames per direction). For non-cyclic one-shot actions (`cast`, single `attack`, `hurt`, `death`), default to a single facing — a 4-direction sheet is usually wasteful there unless explicitly requested.
+- For a single-direction request, honor `view` + `direction`: render the body at the requested facing (`down`/`left`/`right`/`up`) consistently across all frames; `side` view with no direction defaults to a single side profile.
 - If final runtime needs a row strip, assemble it after QC from the processed multi-row grid frames.
 - Keep the character centered in every cell. The body centerline should stay near the cell center, feet/bottom anchor should stay on the same y-position when visible, and the subject should occupy only the central safe area with generous magenta padding.
 - For attack, shoot, cast, charge, and other body actions, the body height should stay close to the accepted idle/run body height. If a fixed-cell runtime is being used, reject body-action output when the body appears more than about 10-15% smaller than idle/run, even if `edge_touch_frames` is empty.
