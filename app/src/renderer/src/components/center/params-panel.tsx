@@ -76,17 +76,19 @@ function ParamsForm({
         <Row label="动作类型">
           <div className="w-40">
             <Select
+              ariaLabel="动作类型"
               value={form.action}
               disabled={disabled}
-              onChange={(e) => set({ action: e.target.value })}
-            >
-              <option value="cast">cast 施法</option>
-              <option value="idle">idle 待机</option>
-              <option value="walk">walk 行走</option>
-              <option value="run">run 奔跑</option>
-              <option value="jump">jump 跳跃</option>
-              <option value="attack">attack 攻击</option>
-            </Select>
+              onChange={(v) => set({ action: v })}
+              options={[
+                { value: 'cast', label: 'cast 施法' },
+                { value: 'idle', label: 'idle 待机' },
+                { value: 'walk', label: 'walk 行走' },
+                { value: 'run', label: 'run 奔跑' },
+                { value: 'jump', label: 'jump 跳跃' },
+                { value: 'attack', label: 'attack 攻击' }
+              ]}
+            />
           </div>
         </Row>
         <Row label="网格 (行×列)">
@@ -123,14 +125,16 @@ function ParamsForm({
         <Row label="对齐">
           <div className="w-40">
             <Select
+              ariaLabel="对齐"
               value={form.align}
               disabled={disabled}
-              onChange={(e) => set({ align: e.target.value })}
-            >
-              <option value="bottom">bottom</option>
-              <option value="center">center</option>
-              <option value="feet">feet</option>
-            </Select>
+              onChange={(v) => set({ align: v })}
+              options={[
+                { value: 'bottom', label: 'bottom' },
+                { value: 'center', label: 'center' },
+                { value: 'feet', label: 'feet' }
+              ]}
+            />
           </div>
         </Row>
       </section>

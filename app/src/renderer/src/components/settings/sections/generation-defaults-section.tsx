@@ -33,31 +33,25 @@ export function GenerationDefaultsSection() {
       <Field label="Reasoning effort" hint="model_reasoning_effort；默认用 codex 推断">
         <div className="w-44">
           <Select
+            ariaLabel="Reasoning effort"
             value={settingGet(SETTINGS_KEYS.genEffort)}
-            onChange={(e) => void settingSet(SETTINGS_KEYS.genEffort, e.target.value)}
-          >
-            <option value="">默认（codex 自身）</option>
-            {EFFORTS.map((ef) => (
-              <option key={ef} value={ef}>
-                {ef}
-              </option>
-            ))}
-          </Select>
+            onChange={(v) => void settingSet(SETTINGS_KEYS.genEffort, v)}
+            options={[
+              { value: '', label: '默认（codex 自身）' },
+              ...EFFORTS.map((ef) => ({ value: ef, label: ef }))
+            ]}
+          />
         </div>
       </Field>
 
       <Field label="Sandbox 模式" hint="codex 执行沙箱；danger 需先在「安全」开启">
         <div className="w-44">
           <Select
+            ariaLabel="Sandbox 模式"
             value={sandboxValue}
-            onChange={(e) => void settingSet(SETTINGS_KEYS.genSandbox, e.target.value)}
-          >
-            {sandboxOptions.map((m) => (
-              <option key={m} value={m}>
-                {m}
-              </option>
-            ))}
-          </Select>
+            onChange={(v) => void settingSet(SETTINGS_KEYS.genSandbox, v)}
+            options={sandboxOptions.map((m) => ({ value: m, label: m }))}
+          />
         </div>
       </Field>
     </SettingSection>

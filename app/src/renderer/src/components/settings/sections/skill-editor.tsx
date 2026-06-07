@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { X } from 'lucide-react'
 import { TextArea } from '../../ui/text-input'
 import { Button } from '../../ui/button'
+import { Select } from '../../ui/select'
 
 interface SkillEditorProps {
   skillId: string
@@ -112,17 +113,13 @@ export function SkillEditor({ skillId, onClose, onDirtyChange }: SkillEditorProp
         <div className="flex min-w-0 items-center gap-2">
           <span className="shrink-0 text-[12px] font-medium text-fg">编辑 {skillId}</span>
           {files.length > 0 && (
-            <select
+            <Select
+              ariaLabel="选择文件"
               value={file}
-              onChange={(e) => onSelectFile(e.target.value)}
-              className="max-w-[200px] truncate rounded-sm border border-edge bg-panel px-2 py-1 text-[11px] text-fg-soft outline-none focus:border-accent"
-            >
-              {files.map((f) => (
-                <option key={f} value={f}>
-                  {f}
-                </option>
-              ))}
-            </select>
+              onChange={onSelectFile}
+              options={files.map((f) => ({ value: f, label: f }))}
+              className="w-[200px]"
+            />
           )}
           {dirty && <span className="shrink-0 text-[11px] text-fg-dim">● 未保存</span>}
         </div>
