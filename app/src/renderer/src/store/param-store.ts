@@ -124,7 +124,8 @@ export function multiDirChangePatch(f: FormState, on: boolean): Partial<FormStat
     const cols = MULTIDIR_PRESETS.some((p) => p.cols === f.cols) ? f.cols : MULTIDIR_PRESETS[0].cols
     return { multiDir: true, gridCustom: false, rows: 4, cols }
   }
-  return { multiDir: false, ...actionDefaultGrid(f.action) }
+  // 关 multiDir：显式清自定义态 + 恢复动作默认单方向网格（gridCustom 显式落 false，不依赖进入时已清）。
+  return { multiDir: false, gridCustom: false, ...actionDefaultGrid(f.action) }
 }
 
 /** 切网格预设：单方向 'custom' → 进自定义态；否则套用预设（multiDir 只取列、行恒 4）。 */
@@ -184,7 +185,9 @@ function paramsToForm(p: GenParams | null): FormState {
   if (!p) return { ...INITIAL_FORM }
   const multiDir = p.multiDir ?? false
   const rows = p.gridRows ?? INITIAL_FORM.rows
-  const cols = p.gridCols ?? INITIAL_FORM.cols
+  let cols = p.gridCols ?? INITIAL_FORM.cols
+  // multiDir 脏数据兜底：列非四方向预设值（仅可能 2/3/4）时回落首预设列，保证网格下拉有匹配项不空显。
+  if (multiDir && !MULTIDIR_PRESETS.some((pp) => pp.cols === cols)) cols = MULTIDIR_PRESETS[0].cols
   return {
     theme: p.theme ?? INITIAL_FORM.theme,
     action: p.action ?? INITIAL_FORM.action,

@@ -3,7 +3,8 @@ import { join } from 'path'
 import { getDb } from '../db'
 import { createGeneration, updateGeneration } from '../db/generations-repo'
 import { runCodexExec, type CodexExecHandle, type CodexSandbox } from '../codex/exec'
-import { buildSpritePrompt, frameCount } from './prompt-builder'
+import { buildSpritePrompt } from './prompt-builder'
+import { resolveGrid } from '../../shared/sprite-grid'
 import { slugify, uniqueSlug } from './slug'
 import { validateBundleStrict } from './bundle'
 import { syncSkillToProject, cleanupSkillInProject } from '../skills/sync'
@@ -59,7 +60,9 @@ export function runGeneration(input: RunGenerationInput): RunGenerationHandle {
   mkdirSync(outputDir, { recursive: true })
 
   const prompt = buildSpritePrompt({ slug, params: input.params })
-  const expected = frameCount(input.params)
+  // 期望网格：multiDir 时 resolveGrid 已锁行 4、列=每方向帧数（帧数 = 4×列）。
+  const { rows, cols } = resolveGrid(input.params)
+  const expected = { rows, cols, multiDir: input.params.multiDir === true }
 
   const record = createGeneration(db, {
     projectId: input.projectId,

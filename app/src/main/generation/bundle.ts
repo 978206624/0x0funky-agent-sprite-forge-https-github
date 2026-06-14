@@ -8,14 +8,30 @@ import { join } from 'path'
  *
  * 仅 gate 核心可运行产物；include 清单里的 README.md / phaser-example.js 是辅助文件，缺失不判失败。
  */
+/**
+ * 核心非动图文件（缺任一即视为 bundle 不完整）。动图单独判（见 hasAnimation）：
+ * 单方向产 animation.gif；四方向整表（player_sheet 4x4）后处理改产 4 条朝向 GIF 而非 animation.gif。
+ */
 export const REQUIRED_BUNDLE_FILES = [
   'raw-sheet.png',
   'raw-sheet-clean.png',
   'sheet-transparent.png',
-  'animation.gif',
   'prompt-used.txt',
   'pipeline-meta.json'
 ] as const
+
+/**
+ * 四方向整表的逐朝向 GIF（py 在 player_sheet 4x4 时产出这组、不产 animation.gif）。
+ * 与 py `generate2dsprite.py` player_sheet 4×4 分支的 directions=["down","left","right","up"] 一一对应；
+ * 此处仅判存在性，不依赖顺序——py 改名才需同步。
+ */
+const DIRECTION_GIFS = ['down.gif', 'left.gif', 'right.gif', 'up.gif'] as const
+
+/** 是否有可用动图：animation.gif（单方向）或四条朝向 GIF 齐全（四方向整表）。 */
+function hasAnimation(outputDir: string): boolean {
+  if (existsSync(join(outputDir, 'animation.gif'))) return true
+  return DIRECTION_GIFS.every((g) => existsSync(join(outputDir, g)))
+}
 
 /** pipeline-meta.json 中我们关心的字段（容错读取）。 */
 interface PipelineMeta {
@@ -36,11 +52,12 @@ function readMeta(outputDir: string): PipelineMeta | null {
   }
 }
 
-/** 核心文件是否齐全；缺失返回缺的文件名，齐全返回 null。 */
+/** 核心文件是否齐全（含动图，动图接受 animation.gif 或四向 GIF）；缺失返回缺的文件名，齐全返回 null。 */
 function missingCoreFile(outputDir: string): string | null {
   for (const f of REQUIRED_BUNDLE_FILES) {
     if (!existsSync(join(outputDir, f))) return f
   }
+  if (!hasAnimation(outputDir)) return 'animation.gif（或四向 down/left/right/up.gif）'
   return null
 }
 
@@ -52,30 +69,56 @@ function missingFramePng(outputDir: string, slug: string, count: number): string
   return null
 }
 
+/** 期望网格（param 模式校验入参）。multiDir=四方向整表（行恒 4=朝向、列=每方向帧数）。 */
+export interface ExpectedGrid {
+  rows: number
+  cols: number
+  multiDir?: boolean
+}
+
 /**
- * 严格校验落盘 bundle 是否齐全且帧数匹配网格（param 模式）。
+ * 严格校验落盘 bundle 是否齐全且帧数/网格匹配（param 模式）。
+ * 帧数 = rows×cols（multiDir 时 = 4×每方向列）。multiDir 额外断言 pipeline-meta 行数为 4。
  * 返回 { ok, thumbnail, reason }；失败时保留 raw-sheet 供排查（不删任何文件）。
  */
 export function validateBundleStrict(
   outputDir: string,
   slug: string,
-  expectedFrames: number
+  expected: ExpectedGrid
 ): { ok: boolean; thumbnail: string | null; reason: string | null } {
+  const expectedFrames = expected.rows * expected.cols
+  const wantLabel = expected.multiDir
+    ? `4×${expected.cols} 帧（4 行朝向 × ${expected.cols} 列）`
+    : `${expectedFrames} 帧（${expected.rows}×${expected.cols}）`
+
   const missCore = missingCoreFile(outputDir)
   if (missCore) return { ok: false, thumbnail: null, reason: `缺少产物文件：${missCore}` }
 
   const missFrame = missingFramePng(outputDir, slug, expectedFrames)
   if (missFrame) return { ok: false, thumbnail: null, reason: `缺少帧文件：${missFrame}` }
 
-  // 帧数校验（以 pipeline-meta 为准）。
+  // 帧数/网格校验（以 pipeline-meta 为准）。
   const meta = readMeta(outputDir)
   if (!meta) return { ok: false, thumbnail: null, reason: 'pipeline-meta.json 解析失败' }
+
+  // 四方向整表：行必须为 4（py 在 grid 模式如实写 meta.rows）。meta 未写行号则跳过此项，留帧数兜底。
+  if (expected.multiDir) {
+    const metaRows = posIntOrNull(meta.rows)
+    if (metaRows !== null && metaRows !== 4) {
+      return {
+        ok: false,
+        thumbnail: null,
+        reason: `网格不符：四方向整表期望 4 行布局，pipeline-meta 实得 rows=${metaRows}`
+      }
+    }
+  }
+
   const actual = Array.isArray(meta.frames) ? meta.frames.length : -1
   if (actual !== expectedFrames) {
     return {
       ok: false,
       thumbnail: null,
-      reason: `帧数不符：期望 ${expectedFrames}，pipeline-meta 实得 ${actual}`
+      reason: `帧数不符：期望 ${wantLabel}，pipeline-meta 实得 ${actual}`
     }
   }
   return { ok: true, thumbnail: join(outputDir, `${slug}-1.png`), reason: null }
