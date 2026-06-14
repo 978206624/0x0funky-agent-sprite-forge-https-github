@@ -27,17 +27,14 @@ Thumbs.db
 
 # /tk multi-model review session scratch
 .tk-meeting/
-work/tk-phase8/
+
+# work/ 实验草稿（手动出图脚本/产物/布局参考/内嵌参考仓库，大体积二进制，不入库）
+# 注：早期已 commit 的 work/* 文件（fire-mage-cast-guide、reference-girl-*）仍受 git 跟踪；
+# 本 blanket 仅忽略未跟踪的新草稿（如各 *-fourdir-* 实验目录），不影响已跟踪文件。
+work/
 
 # Generated sprite assets / experiment scratch (大体积二进制，不入库)
 outputs/
-
-# 内嵌 git 仓库（参考用，不入库）
-work/open-design-reference/
-
-# 早期管线开发的诊断 bundle scratch（已 git rm --cached 移出，保留磁盘，大体积二进制不入库）
-work/fire-mage-cast-diag/
-work/fire-mage-cast-diag-v2/
 
 # Claude per-task review 状态文件
 .claude/.needs-review
