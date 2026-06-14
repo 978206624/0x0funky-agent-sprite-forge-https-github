@@ -25,22 +25,24 @@ Thumbs.db
 *.db-shm
 *.db-wal
 
+# 开发框架 / 文档 / 设计 / 草稿 —— 不入库（已从 git 历史彻底清除，仅保留本地）
+# 公开仓库只保留 app/ 源码；以下为 Claude Code 工作流本地资产与开发期文档
+.claude/
+design/
+dev-plans/
+docs/
+Product-Spec.md
+Product-Spec-CHANGELOG.md
+Design-Brief.md
+
 # /tk multi-model review session scratch
 .tk-meeting/
 
-# work/ 实验草稿（手动出图脚本/产物/布局参考/内嵌参考仓库，大体积二进制，不入库）
-# 注：早期已 commit 的 work/* 文件（fire-mage-cast-guide、reference-girl-*）仍受 git 跟踪；
-# 本 blanket 仅忽略未跟踪的新草稿（如各 *-fourdir-* 实验目录），不影响已跟踪文件。
+# work/ 实验草稿（手动出图脚本/产物/布局参考/内嵌参考仓库，大体积二进制）
 work/
 
 # Generated sprite assets / experiment scratch (大体积二进制，不入库)
 outputs/
-
-# Claude per-task review 状态文件
-.claude/.needs-review
-
-# Claude 调度锁等运行时残留
-.claude/scheduled_tasks.lock
 
 # Python 字节码缓存
 __pycache__/
