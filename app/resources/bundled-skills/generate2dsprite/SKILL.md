@@ -15,8 +15,8 @@ Infer these from the user request:
 
 - `asset_type`: `player` | `npc` | `creature` | `character` | `spell` | `projectile` | `impact` | `prop` | `summon` | `fx`
 - `action`: `single` | `idle` | `cast` | `attack` | `shoot` | `jump` | `hurt` | `combat` | `walk` | `run` | `hover` | `charge` | `projectile` | `impact` | `explode` | `death`
-- `view`: `topdown` | `side` | `3/4`
-- `direction`: `down` | `left` | `right` | `up` | `all4` — facing for the asset. `down`=toward camera, `left`/`right`=side profile, `up`=back to camera. `all4` requests a 4-direction sheet (see Multi-direction rule). Default: for `side` view a single side facing; for `topdown`/`3/4` a single `down` facing unless the user asks for more.
+- `view`: `side` | `topdown` | `3-4` — pose/camera constraint. `side` uses a strict lateral profile with no front/back turn; `topdown` uses a clear overhead game-camera pose with readable head/shoulders/footprint; `3-4` uses a three-quarter game view that shows both the facing plane and body depth. Keep the chosen view consistent across every frame.
+- `direction`: `down` | `left` | `right` | `up` | `all4` — facing for the asset. In a single-direction sheet, `down`=toward camera, `left`=left-facing side profile, `right`=right-facing side profile, and `up`=back to camera. `all4` requests a 4-direction sheet (see Multi-direction rule). Default: for `side` view a single side facing; for `topdown`/`3-4` a single `down` facing unless the user asks for more.
 - `sheet`: `auto` | `2x2` | `2x3` | `2x4` | `3x3` | `3x4` | `4x4` | `5x5` | `custom_grid` | `strip_1x3` | `strip_1x4`
 - `frames`: `auto` or explicit count
 - `bundle`: `single_asset` | `unit_bundle` | `spell_bundle` | `combat_bundle` | `line_bundle` | `hero_action_bundle` | `engine_atlas`
