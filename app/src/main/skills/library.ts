@@ -10,7 +10,7 @@ import {
   lstatSync
 } from 'fs'
 import { join } from 'path'
-import { createHash } from 'crypto'
+import { createHash } from 'node:crypto'
 import type { SkillInfo, SkillListResult } from '../../shared/types'
 import {
   BUILTIN_SKILL_IDS,
@@ -35,18 +35,20 @@ interface SeedRecord {
   hash: string
 }
 
-/** 读取内置蓝本版本（resources/bundled-skills/<id>/.bundled-version）；无/非法回退 0。 */
-function readBundledVersion(id: string): number {
+/** 读取内置蓝本目录版本（.bundled-version）；须为非负整数，无/非法回退 0。 */
+function readBundledVersion(blueprint: string): number {
   try {
-    const n = parseInt(readFileSync(join(bundledSkillDir(id), '.bundled-version'), 'utf8').trim(), 10)
-    return Number.isFinite(n) ? n : 0
+    const raw = readFileSync(join(blueprint, '.bundled-version'), 'utf8').trim()
+    if (!/^\d+$/.test(raw)) return 0
+    const version = Number(raw)
+    return Number.isSafeInteger(version) ? version : 0
   } catch {
     return 0
   }
 }
 
 /** 计算 skill 目录内容哈希：排序后的 (相对路径 + 文件内容) sha256，跳过 seed 记录文件。 */
-function hashSkillDir(dir: string): string {
+export function hashSkillDir(dir: string): string {
   const rels: string[] = []
   const walk = (d: string, prefix: string): void => {
     let entries: string[]
@@ -79,10 +81,22 @@ function hashSkillDir(dir: string): string {
   return h.digest('hex')
 }
 
-function readSeedRecord(dir: string): SeedRecord | null {
+export function readSeedRecord(dir: string): SeedRecord | null {
   try {
-    const r = JSON.parse(readFileSync(join(dir, SEED_RECORD), 'utf8')) as SeedRecord
-    if (typeof r.version === 'number' && typeof r.hash === 'string') return r
+    const value: unknown = JSON.parse(readFileSync(join(dir, SEED_RECORD), 'utf8'))
+    if (
+      typeof value === 'object' &&
+      value !== null &&
+      'version' in value &&
+      'hash' in value &&
+      typeof value.version === 'number' &&
+      Number.isSafeInteger(value.version) &&
+      value.version >= 0 &&
+      typeof value.hash === 'string' &&
+      /^[a-f0-9]{64}$/.test(value.hash)
+    ) {
+      return { version: value.version, hash: value.hash }
+    }
     return null
   } catch {
     return null
@@ -100,6 +114,26 @@ function seedFrom(blueprint: string, target: string, version: number): void {
   writeSeedRecord(target, { version, hash: hashSkillDir(target) })
 }
 
+/** 对单个内置蓝本执行 seed/re-seed，抽离路径依赖便于启动逻辑验证。 */
+export function seedBuiltinSkill(blueprint: string, target: string): void {
+  const bundledVer = readBundledVersion(blueprint)
+  if (!existsSync(target)) {
+    seedFrom(blueprint, target, bundledVer)
+    return
+  }
+
+  // 旧 seed 无记录：当前内容作为版本 0 基线，随后立即复用升级判定。
+  // Phase 1 计划已接受首次 bootstrap 可能覆盖版本机制上线前手工编辑的有限风险。
+  let rec = readSeedRecord(target)
+  if (rec === null) {
+    rec = { version: 0, hash: hashSkillDir(target) }
+    writeSeedRecord(target, rec)
+  }
+
+  const edited = hashSkillDir(target) !== rec.hash
+  if (!edited && bundledVer > rec.version) seedFrom(blueprint, target, bundledVer)
+}
+
 /**
  * 自管 skill 库初始化（app 启动时调用一次）。
  * - 确保库根 userData/skills/ 存在
@@ -107,8 +141,8 @@ function seedFrom(blueprint: string, target: string, version: number): void {
  *   ① 缺失 → seed + 记录当前蓝本版本与哈希；
  *   ② 已存在且有记录 → 仅当"用户未编辑（当前哈希==记录哈希）且蓝本版本更新"时覆盖刷新（带入增强）；
  *      用户编辑过则保留不动（不克抹用户改动，符合"无恢复默认"）；
- *   ③ 已存在但无记录（版本机制前的旧 seed）→ **默认保护**：只补记录(version=当前蓝本版本, hash=当前内容)、
- *      本次不覆盖，避免把"版本机制上线前已编辑过"的内容静默清掉；后续蓝本 bump 时再经②判定。
+ *   ③ 已存在但无记录（版本机制前的旧 seed）→ 先以当前内容补基线记录(version=0)，再按②刷新一次。
+ *      这会把旧 seed 当作未编辑内容；版本机制上线前暂无真实用户编辑，风险由 Phase 1 计划显式接受。
  * 单个内置蓝本缺失不阻断启动，仅记 warn。
  */
 export function initSkillLibrary(): void {
@@ -122,26 +156,8 @@ export function initSkillLibrary(): void {
       console.warn(`[skill-library] 内置蓝本缺失，跳过：${id} (${blueprint})`)
       continue
     }
-    const bundledVer = readBundledVersion(id)
     try {
-      if (!existsSync(target)) {
-        seedFrom(blueprint, target, bundledVer) // ① 全新 seed
-        continue
-      }
-      // ③ 旧 seed 无记录（版本机制上线前的副本）：**默认保护，不覆盖**。
-      // 不能用"当前内容算 hash 当基线"——那会把已编辑内容误判为未编辑并被蓝本覆盖、静默丢失用户改动。
-      // 故仅补一条记录把版本钉到当前蓝本（hash=当前内容），本次不刷新；
-      // 后续蓝本再 bump 时，会经②正常判定（未编辑才刷新）。
-      const rec = readSeedRecord(target)
-      if (!rec) {
-        writeSeedRecord(target, { version: bundledVer, hash: hashSkillDir(target) })
-        continue
-      }
-      // ② 未编辑且蓝本更新 → 刷新；用户编辑过 → 保留
-      const edited = hashSkillDir(target) !== rec.hash
-      if (!edited && bundledVer > rec.version) {
-        seedFrom(blueprint, target, bundledVer)
-      }
+      seedBuiltinSkill(blueprint, target)
     } catch (err) {
       console.warn(`[skill-library] seed/re-seed 内置 skill 失败：${id} — ${String(err)}`)
     }
