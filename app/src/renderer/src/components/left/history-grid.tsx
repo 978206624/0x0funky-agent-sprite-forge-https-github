@@ -1,7 +1,8 @@
-import { ImageOff } from 'lucide-react'
+import { Download, ImageOff } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import type { GenerationRecord, GenerationStatus } from '@shared/types'
 import { useHistory } from '../../hooks/use-history'
+import { ExportDialog } from '../export/export-dialog'
 
 /** 状态 → 角标（成功绿✓ / 失败红× / 进行中琥珀… / 取消灰–；其余无角标）。 */
 function statusBadge(status: GenerationStatus): { mark: string; cls: string } | null {
@@ -37,6 +38,7 @@ function HistoryCard({
   const badge = statusBadge(record.status)
   const showThumb = record.status === 'success'
   const [errored, setErrored] = useState(false)
+  const [showExport, setShowExport] = useState(false)
   useEffect(() => setErrored(false), [record.slug])
 
   return (
@@ -44,7 +46,7 @@ function HistoryCard({
       type="button"
       onClick={onOpen}
       aria-pressed={selected}
-      className="flex w-full flex-col gap-1 text-left"
+      className="flex w-full flex-col gap-1 text-left relative group"
     >
       <span
         className={`checker-bg relative block h-[88px] overflow-hidden rounded-md border ${
@@ -71,10 +73,39 @@ function HistoryCard({
             {badge.mark}
           </span>
         )}
+        {/* F2 导出按钮：仅成功记录显示，stopPropagation 防冒泡触发 onOpen */}
+        {record.status === 'success' && (
+          <span
+            role="button"
+            tabIndex={0}
+            onClick={(e) => {
+              e.stopPropagation()
+              setShowExport(true)
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.stopPropagation()
+                setShowExport(true)
+              }
+            }}
+            title="导出到 Godot / Phaser"
+            className="absolute right-1.5 bottom-1.5 inline-flex items-center gap-1 rounded px-2 py-1 text-[11px] text-fg-soft hover:text-fg hover:bg-hover border border-edge bg-base/80 opacity-0 group-hover:opacity-100 transition-opacity"
+          >
+            <Download className="h-3 w-3" />
+            导出
+          </span>
+        )}
       </span>
       <span className={`block w-full truncate text-[11px] ${selected ? 'text-fg' : 'text-fg-soft'}`}>
         {record.slug}
       </span>
+      {showExport && (
+        <ExportDialog
+          generationId={record.id}
+          slug={record.slug}
+          onClose={() => setShowExport(false)}
+        />
+      )}
     </button>
   )
 }

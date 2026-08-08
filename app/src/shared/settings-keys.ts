@@ -23,7 +23,13 @@ export const SETTINGS_KEYS = {
   /** codex 可执行文件自定义路径（覆盖 CODEX_BIN/PATH），空=不覆盖 */
   codexBinOverride: 'codex.bin_override',
   /** 是否允许 danger-full-access sandbox（默认关，'true' 为开） */
-  allowDanger: 'security.allow_danger'
+  allowDanger: 'security.allow_danger',
+  /** Godot 4.x 导出适配器开关（默认开，'false' 为关） */
+  exportGodotEnabled: 'export.godot_enabled',
+  /** 导出默认目标目录（空=未设置） */
+  exportDefaultDest: 'export.default_dest',
+  /** 导出时是否包含预览图（默认关） */
+  exportIncludePreview: 'export.include_preview'
 } as const
 
 export type SettingsKey = (typeof SETTINGS_KEYS)[keyof typeof SETTINGS_KEYS]
@@ -34,7 +40,10 @@ export const SETTINGS_DEFAULTS: Record<SettingsKey, string> = {
   [SETTINGS_KEYS.genEffort]: '',
   [SETTINGS_KEYS.genSandbox]: 'workspace-write',
   [SETTINGS_KEYS.codexBinOverride]: '',
-  [SETTINGS_KEYS.allowDanger]: 'false'
+  [SETTINGS_KEYS.allowDanger]: 'false',
+  [SETTINGS_KEYS.exportGodotEnabled]: 'true',
+  [SETTINGS_KEYS.exportDefaultDest]: '',
+  [SETTINGS_KEYS.exportIncludePreview]: 'false'
 }
 
 /** 布尔设置的开值（settings 存字符串，统一以此判定）。 */

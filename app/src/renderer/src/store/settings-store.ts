@@ -3,7 +3,7 @@ import type { AppSettings } from '@shared/types'
 import { SETTINGS_KEYS, SETTINGS_DEFAULTS, type SettingsKey } from '@shared/settings-keys'
 
 /** 设置页 tab（左侧导航）。 */
-export type SettingsTab = 'project' | 'codex' | 'skill' | 'generation' | 'storage' | 'security'
+export type SettingsTab = 'project' | 'codex' | 'skill' | 'generation' | 'storage' | 'export' | 'security'
 
 interface SettingsState {
   /** 设置页覆盖层是否打开。 */

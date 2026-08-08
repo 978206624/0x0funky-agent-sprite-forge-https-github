@@ -6,6 +6,7 @@ import { CodexSection } from './sections/codex-section'
 import { SkillSection } from './sections/skill-section'
 import { GenerationDefaultsSection } from './sections/generation-defaults-section'
 import { StorageSection } from './sections/storage-section'
+import { ExportSection } from './sections/export-section'
 import { SecuritySection } from './sections/security-section'
 
 /** 设置页 tab 列表（顺序即侧栏从上到下）。 */
@@ -15,6 +16,7 @@ const TABS: { key: SettingsTab; label: string }[] = [
   { key: 'skill', label: 'Skill' },
   { key: 'generation', label: '生成默认值' },
   { key: 'storage', label: '存储' },
+  { key: 'export', label: 'Export' },
   { key: 'security', label: '安全' }
 ]
 
@@ -88,6 +90,7 @@ export function SettingsPage() {
             {activeTab === 'skill' && <SkillSection />}
             {activeTab === 'generation' && <GenerationDefaultsSection />}
             {activeTab === 'storage' && <StorageSection />}
+            {activeTab === 'export' && <ExportSection />}
             {activeTab === 'security' && <SecuritySection />}
           </div>
         </div>

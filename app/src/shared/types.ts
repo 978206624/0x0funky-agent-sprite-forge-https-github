@@ -247,6 +247,55 @@ export interface ExportResult {
 }
 
 // ============================================================
+// 导出 Adapter（Phase P2：Godot 4.x 导出适配器）
+// ============================================================
+
+/** 一次产出的可导入资源源（adapter export() 的输入）。 */
+export interface SpriteAssetSource {
+  slug: string
+  outputDir: string
+  /** 单帧 PNG（帧索引 → 文件路径）。 */
+  frames: string[]
+  /** 透明整张精灵表 PNG 路径。 */
+  sheet: string
+  /** 帧信息（来自 pipeline-meta.json / bundle 探测）。 */
+  gridCols: number
+  gridRows: number
+  frameWidth: number
+  frameHeight: number
+  frameCount: number
+}
+
+/** adapter 注册信息（渲染层 listAdapters / 设置页展示用）。 */
+export interface ExportAdapterInfo {
+  id: string
+  displayName: string
+  version: string
+  /** 描述，给设置页/导出对话框。 */
+  description: string
+  /** 是否启用（settings 表 export.<id>_enabled 的解析值）。 */
+  enabled: boolean
+}
+
+/** 导出校验结果（preload / 主进程共享）。 */
+export interface ValidationReport {
+  ok: boolean
+  errors: string[]
+  warnings: string[]
+}
+
+/** adapter 导出结果。 */
+export interface AdapterExportResult {
+  ok: boolean
+  adapterId: string
+  /** 相对目标根目录的文件清单（含 targetPath / sizeBytes）。 */
+  files: { targetPath: string; sizeBytes: number }[]
+  destRoot: string
+  warnings: string[]
+  errors: string[]
+}
+
+// ============================================================
 // Skill 库（app 自管库：内置 + 导入/新建；状态条第三灯）
 // ============================================================
 

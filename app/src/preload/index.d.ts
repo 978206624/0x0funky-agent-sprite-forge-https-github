@@ -14,7 +14,10 @@ import type {
   ChatMessageWithGen,
   ChatSendInput,
   ChatSendResult,
-  ChatTurnResult
+  ChatTurnResult,
+  ExportAdapterInfo,
+  AdapterExportResult,
+  ValidationReport
 } from '../shared/types'
 
 export interface ForgeApi {
@@ -82,6 +85,21 @@ export interface ForgeApi {
   export: {
     /** 导出某条产出的整套 bundle 到用户选定目录；返回 null 表示用户取消 */
     bundle: (generationId: number) => Promise<ExportResult | null>
+    /** 列出所有已注册的导出适配器（含 enabled 状态来自 settings） */
+    listAdapters: () => Promise<ExportAdapterInfo[]>
+    /** 校验某条产出是否可被指定适配器导出；返回校验报告 */
+    adapterValidate: (input: {
+      generationId: number
+      adapterId: string
+    }) => Promise<ValidationReport>
+    /** 用指定适配器导出某条产出；主进程弹原生目录选择器 */
+    adapter: (input: {
+      generationId: number
+      adapterId: string
+      opts?: Record<string, unknown>
+    }) => Promise<AdapterExportResult | null>
+    /** 原生目录选择器，返回所选目录绝对路径；取消返回 null */
+    pickDirectory: () => Promise<string | null>
   }
   skills: {
     /** 列出 app 自管库中的受管 skill（内置 + 导入/新建） */
