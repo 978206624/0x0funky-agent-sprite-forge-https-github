@@ -5,19 +5,10 @@ import { CodexNotReady } from '../states/codex-not-ready'
 import { EmptyState } from '../states/empty-state'
 import { ErrorState } from '../states/error-state'
 import { ParamsPanel } from '../center/params-panel'
-import { PreviewStage, type PreviewView } from '../center/preview-stage'
-import { PlaybackBar } from '../center/playback-bar'
-import { SegmentedControl } from '../ui/segmented-control'
+import { PreviewTabs } from '../preview/preview-tabs'
 import { useGenerationStore } from '../../store/generation-store'
 import { useHistoryStore } from '../../store/history-store'
 import { usePreview } from '../../hooks/use-preview'
-import { usePlayback } from '../../hooks/use-playback'
-
-const VIEW_OPTIONS = [
-  { value: 'sheet' as const, label: '精灵表' },
-  { value: 'frame' as const, label: '单帧' },
-  { value: 'gif' as const, label: 'GIF' }
-]
 
 interface CenterPanelProps {
   ready: boolean
@@ -26,13 +17,17 @@ interface CenterPanelProps {
   onRetry: () => void
 }
 
+/**
+ * 中栏：左 = ParamsPanel；右 = 预览列。
+ * Codex 未就绪只接管预览列（参数面板始终可用，先填表待 Codex）。
+ * 预览列（v3.0 P1）：上方标题/导出按钮不变；下方单一 PNG 预览替换为多 tab（Sheet | Frames | GIF | Spine | Cocos plist | Godot .tscn）。
+ * PreviewTabs 内部从 settings 恢复上次激活 tab；点击历史卡片（plan F2 验收）由 history-view 触发 select → 中栏预览列更新。
+ */
 export function CenterPanel({ ready, health, loading, onRetry }: CenterPanelProps) {
-  const [view, setView] = useState<PreviewView>('sheet')
   const status = useGenerationStore((s) => s.status)
   const slug = useGenerationStore((s) => s.slug)
   const running = status === 'running'
   const preview = usePreview()
-  const pb = usePlayback(preview?.frameCount ?? 0, view === 'frame')
 
   // 导出当前选中产出：仅成功记录可导出（来自历史选中，刷新后仍可用）。
   const selected = useHistoryStore((s) => s.selected)
@@ -86,66 +81,61 @@ export function CenterPanel({ ready, health, loading, onRetry }: CenterPanelProp
     <main className="flex flex-1 overflow-hidden bg-base">
       <ParamsPanel ready={ready} />
       <div className="flex min-w-0 flex-1 flex-col">
-      <div className="flex h-12 shrink-0 items-center justify-between border-b border-edge px-4">
-        <div className="flex items-center gap-3">
-          <span className="text-sm font-semibold text-fg">
-            {running ? (slug ?? '生成中…') : (selected?.slug ?? '尚未生成')}
-          </span>
-          {running && <Loader2 className="h-4 w-4 animate-spin text-accent" />}
-          {preview && (
-            <span className="font-mono text-xs text-fg-dim">
-              {preview.frameCount} 帧 · {preview.cell}px · {preview.rows}×{preview.cols}
+        <div className="flex h-12 shrink-0 items-center justify-between border-b border-edge px-4">
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-semibold text-fg">
+              {running ? (slug ?? '生成中…') : (selected?.slug ?? '尚未生成')}
             </span>
-          )}
-        </div>
-        <div className="flex min-w-0 items-center gap-3">
-          {exportMsg && (
-            <span
-              title={exportMsg.text}
-              className={`max-w-[260px] truncate font-mono text-[11px] ${exportMsg.ok ? 'text-success' : 'text-error'}`}
-            >
-              {exportMsg.text}
-            </span>
-          )}
-          <SegmentedControl options={VIEW_OPTIONS} value={view} onChange={setView} />
-          <span className="font-mono text-xs text-fg-soft">100%</span>
-          <button
-            type="button"
-            disabled={!canExport || exporting}
-            onClick={() => void handleExport()}
-            className="inline-flex items-center gap-2 rounded-md border border-edge bg-elevated px-3 py-2 text-xs font-medium text-fg-soft hover:bg-hover hover:text-fg disabled:pointer-events-none disabled:opacity-50"
-          >
-            {exporting ? (
-              <Loader2 className="h-[15px] w-[15px] animate-spin" />
-            ) : (
-              <Download className="h-[15px] w-[15px]" />
+            {running && <Loader2 className="h-4 w-4 animate-spin text-accent" />}
+            {preview && (
+              <span className="font-mono text-xs text-fg-dim">
+                {preview.frameCount} 帧 · {preview.cell}px · {preview.rows}×{preview.cols}
+              </span>
             )}
-            {exporting ? '导出中…' : '导出'}
-          </button>
-        </div>
-      </div>
-
-      {/*
-        中栏主区以 selected（单一事实源）驱动，生成中优先显进度占位：
-        生成中→进行中占位；选中失败记录→错误态；选中成功记录→预览；否则→空态引导。
-        失败记录由 history-store.onDone 自动选中，故失败即显错误态；点其它历史卡可切走，不霸屏。
-      */}
-      {running ? (
-        <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6">
-          <div className="checker-bg flex h-[480px] w-[672px] items-center justify-center rounded-md border border-edge-strong">
-            <span className="text-sm text-fg-dim">生成中…</span>
+          </div>
+          <div className="flex min-w-0 items-center gap-3">
+            {exportMsg && (
+              <span
+                title={exportMsg.text}
+                className={`max-w-[260px] truncate font-mono text-[11px] ${exportMsg.ok ? 'text-success' : 'text-error'}`}
+              >
+                {exportMsg.text}
+              </span>
+            )}
+            <button
+              type="button"
+              disabled={!canExport || exporting}
+              onClick={() => void handleExport()}
+              className="inline-flex items-center gap-2 rounded-md border border-edge bg-elevated px-3 py-2 text-xs font-medium text-fg-soft hover:bg-hover hover:text-fg disabled:pointer-events-none disabled:opacity-50"
+            >
+              {exporting ? (
+                <Loader2 className="h-[15px] w-[15px] animate-spin" />
+              ) : (
+                <Download className="h-[15px] w-[15px]" />
+              )}
+              {exporting ? '导出中…' : '导出'}
+            </button>
           </div>
         </div>
-      ) : selected?.status === 'failed' ? (
-        <ErrorState />
-      ) : preview ? (
-        <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6">
-          <PreviewStage preview={preview} view={view} frameIndex={pb.frame} />
-          {view === 'frame' && <PlaybackBar pb={pb} frameCount={preview.frameCount} />}
-        </div>
-      ) : (
-        <EmptyState />
-      )}
+
+        {/*
+          中栏主区以 selected（单一事实源）驱动：
+          生成中 → 占位；失败 → 错误态；选中成功 → PreviewTabs（多 tab 预览）；否则 → 空态。
+          多 tab 由 PreviewTabs 内部维护，激活 tab 写 settings KV；首次进入默认 Sheet。
+        */}
+        {running ? (
+          <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6">
+            <div className="checker-bg flex h-[480px] w-[672px] items-center justify-center rounded-md border border-edge-strong">
+              <span className="text-sm text-fg-dim">生成中…</span>
+            </div>
+          </div>
+        ) : selected?.status === 'failed' ? (
+          <ErrorState />
+        ) : preview ? (
+          <PreviewTabs />
+        ) : (
+          <EmptyState />
+        )}
       </div>
     </main>
   )

@@ -18,14 +18,23 @@ const MIME: Record<string, string> = {
   '.webp': 'image/webp',
   '.json': 'application/json',
   '.txt': 'text/plain; charset=utf-8',
-  '.js': 'text/javascript; charset=utf-8'
+  '.js': 'text/javascript; charset=utf-8',
+  // Phase v3.0 P1 多 tab 预览器所需：plist(Cocos2d-x)、atlas(Spine)、
+  // tscn(Godot) 都作为文本/JSON 暴露给 renderer 解析。
+  '.plist': 'text/plain; charset=utf-8',
+  '.atlas': 'text/plain; charset=utf-8',
+  '.tscn': 'text/plain; charset=utf-8',
+  '.tres': 'text/plain; charset=utf-8',
+  '.skel': 'application/octet-stream'
 }
 
 /** 必须在 app ready 之前调用（注册 scheme 权限）。 */
 export function registerAssetSchemePrivileges(): void {
   protocol.registerSchemesAsPrivileged([
-    // 仅服务 <img> 预览，不放 supportFetchAPI（不需要 renderer fetch('asset://')），缩小能力面。
-    { scheme: 'asset', privileges: { standard: true, secure: true, stream: true } }
+    // v3.0 P1 起需要 renderer fetch('asset://') 读文本/JSON（spine/plist/tscn 预览器）。
+    // 安全面不因 supportFetchAPI 扩大：fetch 仍走同一 protocol.handle + 双层 path-confinement，
+    // 只是把传输从 <img> 扩到 fetch；CSP connect-src 也已放行 asset:。
+    { scheme: 'asset', privileges: { standard: true, secure: true, stream: true, supportFetchAPI: true } }
   ])
 }
 

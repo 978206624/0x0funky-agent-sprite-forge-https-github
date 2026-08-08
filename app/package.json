@@ -16,6 +16,7 @@
     "postinstall": "electron-rebuild -f -w better-sqlite3"
   },
   "dependencies": {
+    "@esotericsoftware/spine-canvas": "^4.3.13",
     "better-sqlite3": "^12.8.0",
     "extract-zip": "^2.0.1",
     "lucide-react": "^0.563.0",
